@@ -156,6 +156,11 @@ class _SellerDashboardScreenState extends ConsumerState<SellerDashboardScreen> {
                     label: 'Customers',
                     onTap: () => context.push(Routes.customers),
                   ),
+                  _Action(
+                    icon: Icons.bar_chart,
+                    label: 'Reports',
+                    onTap: () => context.push(Routes.reports),
+                  ),
                 ],
               ),
             ],

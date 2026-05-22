@@ -158,6 +158,11 @@ class BuyerDashboardScreen extends ConsumerWidget {
                     onTap: () => context.push(Routes.calendar),
                   ),
                   _Action(
+                    icon: Icons.event_available_outlined,
+                    label: 'Manage schedule',
+                    onTap: () => context.push(Routes.schedule),
+                  ),
+                  _Action(
                     icon: Icons.receipt_long_outlined,
                     label: l10n.t('view_bills'),
                     onTap: () => context.push(Routes.buyerBills),

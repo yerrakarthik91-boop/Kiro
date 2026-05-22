@@ -7,11 +7,13 @@ import '../../features/buyer/bills/buyer_bills_screen.dart';
 import '../../features/buyer/buyer_dashboard_screen.dart';
 import '../../features/buyer/calendar/calendar_view_screen.dart';
 import '../../features/buyer/complaints/complaint_create_screen.dart';
+import '../../features/buyer/schedule/schedule_management_screen.dart';
 import '../../features/seller/bills/bill_detail_screen.dart';
 import '../../features/seller/bills/bills_list_screen.dart';
 import '../../features/seller/customers/customer_form_screen.dart';
 import '../../features/seller/customers/customer_list_screen.dart';
 import '../../features/seller/deliveries/delivery_report_screen.dart';
+import '../../features/seller/reports/reports_screen.dart';
 import '../../features/seller/seller_dashboard_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/user_selection/user_selection_screen.dart';
@@ -29,6 +31,7 @@ abstract class Routes {
   static const deliveryReport = '/seller/deliveries';
   static const bills = '/seller/bills';
   static const billDetail = '/seller/bills/detail';
+  static const reports = '/seller/reports';
 
   // Buyer
   static const buyerHome = '/buyer';
@@ -36,6 +39,7 @@ abstract class Routes {
   static const buyerBillDetail = '/buyer/bills/detail';
   static const calendar = '/buyer/calendar';
   static const complaintCreate = '/buyer/complaint/new';
+  static const schedule = '/buyer/schedule';
 }
 
 final appRouterProvider = Provider<GoRouter>((_) {
@@ -92,6 +96,10 @@ final appRouterProvider = Provider<GoRouter>((_) {
           role: 'seller',
         ),
       ),
+      GoRoute(
+        path: Routes.reports,
+        builder: (_, __) => const ReportsScreen(),
+      ),
 
       // Buyer flows
       GoRoute(
@@ -116,6 +124,10 @@ final appRouterProvider = Provider<GoRouter>((_) {
       GoRoute(
         path: Routes.complaintCreate,
         builder: (_, __) => const ComplaintCreateScreen(),
+      ),
+      GoRoute(
+        path: Routes.schedule,
+        builder: (_, __) => const ScheduleManagementScreen(),
       ),
     ],
   );

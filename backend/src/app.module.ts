@@ -15,6 +15,7 @@ import { BillsModule } from './modules/bills/bills.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { ComplaintsModule } from './modules/complaints/complaints.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { Product } from './modules/products/entities/product.entity';
 
 @Module({
@@ -34,6 +35,7 @@ import { Product } from './modules/products/entities/product.entity';
     BillsModule,
     PaymentsModule,
     ComplaintsModule,
+    ReportsModule,
   ],
 })
 export class AppModule implements OnModuleInit {
