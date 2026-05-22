@@ -1,0 +1,37 @@
+name: Mobile CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile.yml'
+
+jobs:
+  analyze:
+    name: Analyze & format
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Bootstrap Flutter project (creates platform folders)
+        run: flutter create . --project-name mms --platforms android,ios --org app.mms
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-warnings
+
+      - name: Format check
+        run: dart format --set-exit-if-changed lib/

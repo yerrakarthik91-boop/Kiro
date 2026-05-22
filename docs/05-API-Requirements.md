@@ -152,11 +152,10 @@ Per-row response: `accepted | rejected | conflict`.
 ### 4.7 Reports
 | Method | Endpoint |
 |--------|----------|
-| GET | `/seller/reports/daily?date=` |
+| GET | `/seller/reports/daily?date=YYYY-MM-DD` |
 | GET | `/seller/reports/monthly?month=YYYY-MM` |
-| GET | `/seller/reports/customer/:customer_id?period=` |
-| GET | `/seller/reports/profit-loss?range=day\|week\|month\|customer` |
-| GET | `/seller/reports/export?type=pdf\|excel\|csv&...` |
+| GET | `/seller/reports/profit-loss?range=day\|week\|month` |
+| GET | `/seller/reports/customer/:customer_id` |
 
 ### 4.8 Settings
 | Method | Endpoint |
@@ -201,10 +200,12 @@ Per-row response: `accepted | rejected | conflict`.
 ### 5.4 Schedule Management
 | Method | Endpoint | Body |
 |--------|----------|------|
-| POST | `/buyer/schedule/pause` | `{ from, to, reason? }` |
+| POST | `/buyer/schedule/pause` | `{ from_date, to_date, reason? }` |
+| POST | `/buyer/schedule/vacation` | `{ from_date, to_date, reason? }` |
 | POST | `/buyer/schedule/resume` | `{}` |
-| POST | `/buyer/schedule/vacation` | `{ from, to }` |
 | POST | `/buyer/schedule/extra-request` | `{ date, slot, quantity, product_id? }` |
+| GET  | `/buyer/schedule` | History |
+| GET  | `/buyer/schedule/status` | Returns `{ active, until?, type? }` |
 
 ### 5.5 Bills & Payments
 | Method | Endpoint |
