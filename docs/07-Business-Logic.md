@@ -1,200 +1,222 @@
 # 07 — Business Logic
 
-This document captures the rules that govern subscriptions, deliveries, billing, payments, and conflict resolution. The mobile app and backend must agree on these rules; the **server is authoritative** in every conflict.
+Rules that govern customers, deliveries, billing, payments, and conflict resolution. The mobile app and backend must agree on these rules; the **server is authoritative** in every conflict.
 
 ---
 
-## 1. Calendar & Delivery Generation
-
-### 1.1 Daily delivery generation job
-- Runs **every day at 03:00 local seller TZ** for that seller.
-- For each `subscriptions` row where `status = 'active'` and the date falls within a delivery day per `frequency`:
-  - Create one `delivery_records` row with `status = 'pending'` and `expected_quantity = subscriptions.quantity`.
-  - Skip the date if any `subscription_pauses` covers it.
-  - Snapshot `unit_price` from product (or `price_override`).
-- Idempotent — UNIQUE(`subscription_id`, `delivery_date`) prevents duplicates.
-
-### 1.2 Frequency rules
-| Frequency | Generates a record on |
-|-----------|----------------------|
-| `daily` | Every date. |
-| `alternate` | Every other day, starting from `start_date`. |
-| `weekly` | Same weekday as `start_date`. |
-| `custom` | Each weekday in `custom_days[]` (0–6, Sun–Sat). |
-
-### 1.3 Pause behavior
-- Pauses are **inclusive** of both `from_date` and `to_date`.
-- Pauses **do not** generate `delivery_records`.
-- A pause that overlaps with already-generated records voids those records (`status = 'skipped'`, reason: "paused").
-
-### 1.4 Quantity overrides
-- **Single-date override:** updates the `expected_quantity` of that day's `delivery_records` row only.
-- **Permanent override:** updates `subscriptions.quantity`; future generation uses the new value.
-
----
-
-## 2. Marking Deliveries
-
-### 2.1 Allowed status transitions
-```
-pending → delivered
-pending → skipped
-pending → partial   (with delivered_quantity < expected)
-delivered ⇄ skipped (only on same day, by seller)
-```
-
-### 2.2 Same-day vs past-day edits
-- **Same day:** seller and assigned staff may edit freely.
-- **Past day (≤ 7 days):** seller only, audit-logged.
-- **> 7 days:** locked. Adjustments must go through invoice "manual adjustment".
-
-### 2.3 Bulk mark
-- "Mark all delivered for route" only affects `pending` rows for that route on that date.
-- Already-skipped rows are left untouched.
-
-### 2.4 Offline reconciliation
-- Mobile generates a `client_revision` per record per change.
-- On `/sync`, server applies in order:
-  1. If server `marked_at` is newer, **server wins**, response = `conflict`.
-  2. Else server applies the change.
-- Conflicts are surfaced to the seller as a list with "Apply mine / Keep server".
-
----
-
-## 3. Pricing
-
-### 3.1 Resolution order (highest priority first)
-1. `subscriptions.price_override` (per-customer custom price)
-2. `products.default_price`
-
-### 3.2 Price changes
-- Updating a product's price affects **future** delivery records only.
-- Already-generated records keep their snapshotted `unit_price`.
-- "Bulk price update" always offers a confirmation modal showing affected customers.
-
----
-
-## 4. Billing
-
-### 4.1 Cycle
-- Configurable per seller via `sellers.billing_cycle_day` (default: 1).
-- Period = previous cycle's first day to current cycle's first day − 1.
-  - Example, cycle day = 1: April invoice covers Apr 1 – Apr 30.
-  - Example, cycle day = 15: April invoice covers Mar 15 – Apr 14.
-
-### 4.2 Auto-generation
-- Runs at 06:00 on `billing_cycle_day` for each customer with at least one delivered record in the period.
-- Aggregates `delivery_records` where `status IN ('delivered','partial')`:
-  - Group by `product_id`.
-  - `quantity_total = SUM(delivered_quantity)`.
-  - `line_total = SUM(delivered_quantity × unit_price)` (using each record's snapshot).
-- Adds tax: `line_total × tax_percent / 100`.
-- Subtotal, tax, discount, total computed.
-- Initial status: `issued`. PDF rendered async; URL written when ready.
-- Push notification: "Your bill of ₹X is ready" (buyer) and "12 invoices generated" (seller).
-
-### 4.3 Manual adjustments
-- Seller may add a discount or write-off line via `POST /seller/invoices/:id/adjust`.
-- Each adjustment is its own ledger entry (audit trail).
-
-### 4.4 Carry-forward
-- Unpaid balance from previous invoice is shown as "Previous balance" line on the new one (not duplicated as charge).
-
-### 4.5 Statuses
-| Status | Meaning |
-|--------|---------|
-| `draft` | Not yet finalized. |
-| `issued` | Customer can see it. |
-| `partial` | `paid_amount > 0 && < total_amount`. |
-| `paid` | `paid_amount >= total_amount`. |
-| `void` | Cancelled, no longer due. |
-
----
-
-## 5. Payments
-
-### 5.1 Recording (offline-first)
-- Cash payments recorded by seller/staff with method=`cash`.
-- Successful UPI/online payments recorded automatically via webhook.
-- All payments allocated to oldest outstanding invoice first (FIFO) unless seller selects manually.
-
-### 5.2 Reconciliation
-- A payment may overflow into the next invoice or sit as advance.
-- Advance balance is shown as a credit on next invoice.
-
-### 5.3 Refunds
-- Initiated from invoice detail; creates a `payments` row with negative amount and `status = 'refunded'`.
-- Online refunds go through gateway API; cash refunds recorded manually.
-
-### 5.4 Reminders
-- Auto reminder cadence (configurable):
-  - Day +0 of issue: "Bill ready".
-  - Day +3: "Friendly reminder".
-  - Day +7: "Overdue notice" (also visible to seller).
-- Seller may send manual reminders any time.
-
----
-
-## 6. Subscriptions Lifecycle
+## 1. Customer Lifecycle
 
 ```
-draft → active → paused ⇄ active → cancelled
-                       └────────→ cancelled
+draft → active → paused ⇄ active → archived
 ```
 
 Rules:
-- A `cancelled` subscription stops generating deliveries from `cancelled_at` onward, but past invoices remain.
-- A buyer-initiated pause requires no seller approval.
-- A buyer-initiated cancellation prompts a confirmation; seller is notified.
+- A new customer is `active` immediately upon creation by the seller.
+- Paused customers do **not** generate deliveries until resumed.
+- Archiving is a soft delete; ledger and past invoices are preserved.
+- Buyer auto-link: if a buyer signs up with the same phone as an existing customer, the customer's `buyer_id` is set automatically and historical data becomes visible to the buyer.
+
+---
+
+## 2. Delivery Generation (Daily Cron)
+
+**Schedule:** every day at **03:00 local seller TZ**.
+
+For each `customers` row where `status='active'`:
+
+- If `delivery_type` includes `morning` → create a `deliveries` row for tomorrow with `slot='morning'`, `expected_quantity = morning_quantity`, `status='pending'`.
+- Same for `evening`.
+- Skip if any active `schedule_changes` of type `pause` or `vacation` covers tomorrow.
+- Snapshot `unit_rate` from customer rate, falling back to product `default_rate`, falling back to seller `default_milk_rate`.
+- Idempotent — UNIQUE(`customer_id`, `delivery_date`, `slot`).
+
+### 2.1 Extra Requests
+Buyer-submitted extra requests insert a `deliveries` row with `status='extra'` for the requested date/slot, with the quantity from the request.
+
+### 2.2 Pause / Vacation
+- Inclusive of both `from_date` and `to_date`.
+- Already-generated overlapping rows are set to `status='missed'` with note "paused/vacation".
+- A buyer-initiated pause requires no seller approval and is reflected in real time.
+
+---
+
+## 3. Marking Deliveries
+
+### 3.1 Allowed transitions
+```
+pending → delivered
+pending → missed
+pending → partial   (when delivered_quantity < expected_quantity)
+delivered ⇄ missed  (only on same day, by seller)
+```
+
+### 3.2 Timing constraints
+- **Same day:** seller may freely mark / re-mark.
+- **Past day (≤ 7 days):** seller-only edit; written to audit log.
+- **> 7 days:** locked. Adjustments must use invoice-level adjustments.
+
+### 3.3 Bulk and gestures
+- Tap row → mark `delivered`, `delivered_quantity = expected_quantity`.
+- Swipe-left → mark `missed`.
+- Long-press → opens edit-quantity sheet → recorded as `partial` if reduced, `delivered` if changed but ≥ expected.
+
+### 3.4 Offline reconciliation
+- Mobile assigns `client_revision` per change.
+- On `/sync`:
+  1. If server `marked_at` is newer or row is locked, **server wins**, response = `conflict`.
+  2. Else apply the change.
+- Conflicts are surfaced to seller as a list with options "Apply mine / Keep server".
+
+---
+
+## 4. Pricing Resolution
+
+Order (highest priority first):
+
+1. `customers.milk_rate` (per-customer override)
+2. `products.default_rate`
+3. `sellers.default_milk_rate`
+
+### 4.1 Price changes
+- Affect **future** delivery generation only.
+- Already-generated `deliveries` retain their snapshotted `unit_rate`.
+- Bulk price update prompts seller with affected-customer count before commit.
+
+---
+
+## 5. Billing
+
+### 5.1 Cycle
+- Configurable per seller via `sellers.billing_cycle_day` (default: 1).
+- Period spans previous cycle day → current cycle day − 1.
+  - Example, cycle day = 1: April invoice covers Apr 1 – Apr 30.
+  - Example, cycle day = 15: April invoice covers Mar 15 – Apr 14.
+- Customer-level `billing_start_date` and `billing_cycle` may override (rare).
+
+### 5.2 Auto generation (cron)
+**Schedule:** 06:00 on `billing_cycle_day` per seller.
+
+For each customer with at least one delivered/partial record in the period:
+
+1. Aggregate `deliveries` where `status IN ('delivered','partial','extra')`.
+2. Group by (`product_id`, `delivery_date`, `slot`) for `bill_items`.
+3. `subtotal = SUM(line_total)`.
+4. Apply tax (if configured per product) → `tax_amount`.
+5. Apply discount/adjustments → `total_amount`.
+6. Render PDF asynchronously to S3, set `pdf_url`.
+7. Status = `pending`, set `due_date = period_end + 7 days`.
+8. Push + SMS to buyer: "Your bill of ₹X is ready".
+
+### 5.3 Manual generation
+- Allowed for any past period that has not already been billed.
+- Server validates non-overlap with existing bills.
+
+### 5.4 Adjustments
+- Discount, write-off, credit note, late fee — each is a separate row that adjusts `total_amount` and is line-itemized in the PDF.
+- All adjustments are audit-logged.
+
+### 5.5 Bill statuses
+| Status | Meaning |
+|--------|---------|
+| `draft` | Not visible to buyer |
+| `pending` | Visible, unpaid |
+| `partial` | `0 < paid_amount < total_amount` |
+| `paid` | `paid_amount >= total_amount` |
+| `overdue` | `pending`/`partial` and `due_date < today` |
+| `void` | Cancelled, not collectable |
+
+`overdue` is computed at read time; daily job also flips status for indexing purposes.
+
+### 5.6 Carry-forward
+- Unpaid balance from previous bill appears as a "Previous Balance" line on the next bill, not as a duplicated charge.
+
+---
+
+## 6. Payments
+
+### 6.1 Recording
+- **Cash / UPI / Bank Transfer:** recorded by seller via `POST /seller/payments`.
+- **Online (UPI, GPay, PhonePe, Paytm, Card, Net Banking):** initiated by buyer through gateway (Razorpay / PhonePe / Cashfree); webhook marks `payments.status='success'`.
+
+### 6.2 Allocation
+- Default FIFO: oldest unpaid bill first.
+- Seller may override allocation manually.
+- Excess funds become an `advance` (no `bill_id`); next bill auto-applies advance as a credit line.
+
+### 6.3 Refunds
+- Recorded as a `payments` row with negative amount and `status='refunded'`.
+- Online refunds go through the gateway API; cash/bank refunds are recorded manually.
+
+### 6.4 Reminders
+Cadence (configurable per seller):
+
+- Day 0 of bill: "Bill ready" (push + SMS).
+- Day +3: "Friendly reminder".
+- Day +7 (overdue): "Overdue notice" (push + SMS + WhatsApp if enabled).
+- Seller may also send manual reminders any time.
 
 ---
 
 ## 7. Notifications
 
-### 7.1 Triggers
-| Event | Recipient | Channel |
-|-------|-----------|---------|
-| Delivery marked | Buyer | Push |
-| Delivery skipped | Buyer | Push (silent if buyer paused it) |
-| Pause created (by buyer) | Seller | Push |
-| Bill generated | Buyer | Push + SMS |
-| Bill overdue | Buyer | Push + SMS |
-| Payment received | Buyer | Push |
-| Payment received (online) | Seller | Push |
-| Complaint raised | Seller | Push |
-| Announcement | Targeted users | Push |
+| Trigger | Recipient | Channels | Quiet hours respected? |
+|---------|-----------|----------|------------------------|
+| Delivery completed | Buyer | Push | Yes |
+| Delivery missed | Buyer | Push | Yes |
+| Bill generated | Buyer | Push + SMS | Yes |
+| Payment due (T-3 / T-0 / overdue) | Buyer | Push + SMS + WhatsApp | No (overdue) |
+| Payment received | Seller + Buyer | Push | No |
+| Complaint raised | Seller | Push | Yes |
+| Complaint status changed | Buyer | Push | Yes |
+| Schedule paused/resumed by buyer | Seller | Push | Yes |
+| Holiday announcement | Targeted customers | Push | Yes |
 
-### 7.2 Quiet hours
-- No non-critical pushes 22:00 – 06:00 local.
-- "Bill overdue" and "Payment received" bypass quiet hours.
+Quiet hours: **22:00 – 06:00 local**, except payment-overdue and payment-received.
 
 ---
 
 ## 8. Permissions Enforcement
 
-- Enforced at API layer using middleware.
-- Staff can only access `delivery_records` for their `assigned_route_ids` and only for current day.
-- Buyers can only access resources where they appear as `buyer_id` or `customer_id`.
-- Row-Level Security in PostgreSQL as a second line of defense.
+- Enforced at API layer via middleware that checks `role` and ownership of the resource.
+- Sellers can only access rows where `seller_id = self`.
+- Buyers can only access rows where they appear as `buyer_id`, or via `customer_id` linked to their `buyer_id`.
+- PostgreSQL Row-Level Security is the second line of defense.
 
 ---
 
 ## 9. Edge Cases & Business Rules
 
 | Scenario | Rule |
-|---------|------|
-| Customer added mid-month | Bill prorated from join date. |
-| Seller deletes a customer with outstanding balance | Soft-delete; ledger preserved; buyer sees "unlinked" with final invoice link. |
-| Buyer changes phone number | Re-OTP; data preserved. |
-| Two sellers, one buyer | Buyer sees combined Home; bills separated per seller. |
-| Holiday declared by seller | Seller broadcasts; system auto-skips that date for all customers in selected route(s). |
-| Product deleted | If referenced by active subs, must be replaced or subs cancelled first. |
-| Negative inventory | Not tracked in v1; seller must manually skip if out-of-stock. |
+|----------|------|
+| Customer added mid-period | First bill prorates from `billing_start_date`. |
+| Seller deletes customer with outstanding balance | Soft delete; ledger preserved; final bill remains visible to buyer. |
+| Buyer changes phone | Re-OTP; data preserved; old phone unlinked. |
+| Two sellers, one buyer | Buyer dashboard aggregates milk summary across sellers; bills separated. |
+| Holiday declared | Seller broadcasts; affected `deliveries` for that date are marked `missed` with note "holiday". |
+| Stock-out (product disabled) | Active customer subscriptions to that product are auto-paused; seller is alerted. |
+| Buyer's vacation overlaps with already-marked delivered | Audit warning; buyer can raise complaint to reverse. |
+| Negative inventory | Not tracked in v1; seller manually skips. |
+| Account deletion | Soft delete user; anonymize PII; preserve invoice integrity. |
 
 ---
 
 ## 10. Audit & Compliance
 
-- Every write to `subscriptions`, `delivery_records`, `invoices`, `payments` writes to `audit_log`.
+- Every write to `customers`, `deliveries`, `bills`, `payments`, `complaints` writes to `audit_log`.
 - Audit log retained 24 months.
-- Right-to-be-forgotten request triggers anonymization (preserve invoice integrity, redact PII).
+- Right-to-be-forgotten: anonymizes PII while preserving aggregate financial records.
+- All financial rows are **append-only** at the storage layer (changes captured as new rows or audit entries).
+
+---
+
+## 11. KPI Computation Definitions
+
+| KPI (PRD §4) | Definition |
+|--------------|------------|
+| Delivery Recording Time | Median time from opening Delivery Report to last row marked, per session, when ≥ 50 customers shown. |
+| Bill Generation Time | Time from `POST /seller/bills/generate` to `pdf_url` ready, p95. |
+| App Response Time | p95 of API request latency on authenticated endpoints excluding /sync. |
+| Delivery Accuracy | (delivered + partial + missed marked) ÷ generated; alert if < 99%. |
+| Billing Errors | Adjustments / void invoices ÷ invoices generated. |
+| Daily Active Users | Unique users with ≥ 1 authenticated request in last 24 h ÷ active accounts. |
+| Customer Satisfaction | Mean app store rating + in-app rating prompt average. |

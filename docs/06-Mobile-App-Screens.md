@@ -1,8 +1,8 @@
 # 06 — Mobile App Screens
 
-Complete screen inventory for both panels. Each screen lists its purpose, key UI elements, primary actions, and any state variants. Screen IDs map to navigation routes.
+Screen inventory for Milk Management System (MMS) v1.0. Every screen described here maps directly to PRD §7–§9.
 
-> **Visual structure** must follow the supplied reference design 1:1. Tokens below (typography, spacing, color) follow Material Design 3 defaults; tweak to reference once available.
+> **Visual structure** must follow the supplied reference design 1:1 when provided. Tokens below follow Material Design 3; tweak to reference once available. Improvements are limited to spacing, contrast, tap-target size, and state feedback — not layout reorganization.
 
 ---
 
@@ -16,135 +16,133 @@ Complete screen inventory for both panels. Each screen lists its purpose, key UI
 | Surface | `#F6F7F6` | `#1A201D` |
 | Error | `#B3261E` | `#F2B8B5` |
 
-- Type scale: MD3 (`displayLarge` … `labelSmall`) using Inter / Roboto.
+- Typography: MD3 scale (`displayLarge` … `labelSmall`) with Inter / Roboto.
 - Spacing: 4-pt grid (4, 8, 12, 16, 24, 32).
-- Min tap target: 48×48 dp.
-- Elevation tokens: 0/1/2/3 with MD3 surface tints.
-- All screens support: pull-to-refresh, empty state, loading skeleton, error retry.
+- Min tap target: **48×48 dp**.
+- Elevation: MD3 surface tints (0–3).
+- Every screen has skeleton, empty, error, offline states.
 
 ---
 
-## A. Shared / Authentication Screens
+## A. Authentication & Common Screens
 
-| ID | Screen | Purpose | Key Elements |
-|----|--------|---------|--------------|
-| AUTH-01 | Splash | Logo while session check runs | Logo, version |
-| AUTH-02 | Onboarding (3 slides) | First-launch product intro | Pager, "Skip", "Get Started" |
-| AUTH-03 | Phone Entry | Capture mobile + country code | Country picker, phone field, T&C checkbox |
-| AUTH-04 | OTP Verify | Verify 6-digit OTP | OTP boxes, "Resend" timer, "Use call OTP" |
-| AUTH-05 | Role Selection | First-time only | Two big cards: "I sell milk", "I buy milk" |
-| AUTH-06 | Profile Setup (Seller) | Business name, address | Name, address w/ map pin, language |
-| AUTH-07 | Profile Setup (Buyer) | Name + invite code/QR | Name, invite-code field, QR scan button, address |
-| AUTH-08 | Permissions | Notifications, location | Native dialog wrappers |
+| ID | Screen | Components & Notes |
+|----|--------|--------------------|
+| SCR-01 | **Splash** | Logo, app name, loader. Checks internet, session, preferences. |
+| SCR-02 | **User Selection** | Two big role buttons (Milk Seller / Milk Buyer). Bottom links: Login · Register · Help · Language. |
+| SCR-03 | Login (OTP) | Country code picker, phone field, T&C checkbox, "Use email login" link. |
+| SCR-04 | OTP Verify | 6-digit OTP, "Resend" with timer. |
+| SCR-05 | Login (Email) | Email, password, "Forgot password?". |
+| SCR-06 | Forgot Password | Phone → OTP → New Password. |
+| SCR-07 | Seller Registration | Name, phone, OTP, business name, address, GST (optional). |
+| SCR-08 | Buyer Registration | Name, phone, OTP, address, optional invite code. |
+| SCR-09 | Permissions Prompt | Notifications, location. |
+| SCR-10 | Help | FAQ accordion, support phone, language switcher. |
 
 ---
 
 ## B. Seller Panel Screens
 
 ### B.1 Navigation
-Bottom nav (5 items): **Today · Customers · Billing · Reports · More**.
+Bottom navigation (5 items): **Dashboard · Customers · Delivery · Billing · More**.
 
-| ID | Screen | Purpose / Notes |
-|----|--------|-----------------|
-| SE-HOME-01 | **Today** | Default tab. Card "Total today: 96 L · 80 customers". Routes list with progress chips. Big FAB "Mark all delivered" only when on a single route. |
-| SE-HOME-02 | Route Detail (Daily Sheet) | Critical screen. List of customers with: avatar, name, default qty, status chip (Pending/Delivered/Skipped). Tap row → quick actions. Long-press header → bulk action sheet. Sticky header with route stats. |
-| SE-HOME-03 | Quick Mark Sheet | Bottom sheet on row tap: ✓ Delivered · ✗ Skipped · ✎ Custom qty · 📷 Photo. |
-| SE-HOME-04 | Add Ad-hoc Delivery | Add extra qty / one-time product for today only. |
-| SE-HOME-05 | Offline Sync Status | Banner expands to show pending changes count + retry. |
-| SE-CUS-01 | Customers List | Search, route filter, status filter. FAB "+ Add". |
-| SE-CUS-02 | Customer Detail | Tabs: Overview · Subscriptions · Ledger · Invoices · Notes. |
-| SE-CUS-03 | Add / Edit Customer | Form: name, phone, address (map pin), route, default subscriptions. |
-| SE-CUS-04 | Invite Code / QR | Modal showing 6-char code + QR + share button. |
-| SE-CUS-05 | Subscription Editor | Product, qty, frequency picker (daily/alt/weekly/custom days). |
-| SE-CUS-06 | Pause Subscription | Calendar range picker. |
-| SE-PRD-01 | Products List | All products with on/off toggle. |
-| SE-PRD-02 | Product Detail / Edit | Name, image, unit, default price, tax%. |
-| SE-PRD-03 | Bulk Price Update | Pick products → new price → confirm. |
-| SE-BIL-01 | Billing Home | KPIs: Total billed, Paid, Pending, Overdue. List of invoices. |
-| SE-BIL-02 | Invoice Detail | Period, line items, payments timeline, "Share PDF" CTA. |
-| SE-BIL-03 | Record Payment | Method, amount, reference, date. |
-| SE-BIL-04 | Send Reminders | Pick recipients → push + SMS preview → confirm. |
-| SE-BIL-05 | Generate Invoice | Manual generation for a customer/period (edge case). |
-| SE-RPT-01 | Reports Home | Date-range selector, tabs: Daily · Monthly · Customers · Routes. Charts (line, bar, donut). |
-| SE-RPT-02 | Export | Choose CSV/PDF, period, fields. |
-| SE-MOR-01 | More | Profile, Staff, Routes, Settings, Help, Logout. |
-| SE-MOR-02 | Staff Management | List, add, permissions toggle. |
-| SE-MOR-03 | Routes Management | Reorder, rename, assign staff. |
-| SE-MOR-04 | Settings | Theme, language, billing cycle day, currency, GST. |
-| SE-MOR-05 | Announcements | Compose broadcast or targeted push. |
-| SE-MOR-06 | Issues / Complaints Inbox | List of complaints with status; respond. |
+### B.2 Screens
 
-### B.2 State Variants per Screen
-- **Empty state:** illustration + primary CTA.
-- **Loading:** skeleton matching the final layout.
-- **Error:** inline + retry button.
-- **Offline:** persistent yellow banner; tappable to view sync queue.
+| ID | Screen | Components / Notes |
+|----|--------|--------------------|
+| SE-01 | **Seller Dashboard** | Summary cards: Total Milk Today · Delivered · Revenue Today · Active Customers · Pending Payments · Collections Today. Quick actions: Add Customer · Generate Bill · Add Delivery · Record Payment · Export Report. Charts: Milk Trend · Revenue Trend · Customer Growth. Delivery summary: Pending · Completed · Missed. Notifications: Due Payments · Missed Deliveries · New Customers. |
+| SE-02 | **Delivery Report** | Filters: Date · Morning · Evening. Customer rows: Name · Quantity · Status. Tap = Delivered. Swipe-left = Missed. Long-press = Edit Quantity. Footer: Total · Delivered · Pending. |
+| SE-03 | Edit Quantity Sheet | Number stepper + save (long-press from SE-02). |
+| SE-04 | Add Delivery (Ad-hoc) | Customer picker, slot, qty, product, notes. |
+| SE-05 | Offline Sync Banner | Persistent banner, expandable to show pending changes count + retry. |
+| SE-06 | **Customer List** | Search by name/mobile. Filters: Active · Paused · Due Payment. Row: Name, Phone, Address, Qty, Rate, Status. FAB "+ Add". |
+| SE-07 | Customer Detail | Tabs: Overview · Deliveries · Bills · Ledger · Notes. Actions: Edit · Pause · Generate Bill · Delete. |
+| SE-08 | **Add / Edit Customer** | Basic Info: Name, Mobile, Alt Mobile, Address. Delivery Settings: Type (Morning/Evening/Both), Morning Qty, Evening Qty. Pricing: Milk Rate. Billing: Start Date, Cycle. Status: Active/Pause. |
+| SE-09 | **Billing** | Tabs: All · Pending · Paid · Overdue. Row: Customer, Period, Amount, Due Date, Status. Actions per row: Open Invoice · Send Invoice · Mark Paid · Download PDF. |
+| SE-10 | **Invoice Detail** | Customer details · Bill details (Invoice #, Period, Generated Date) · Delivery breakdown table (Date / Morning / Evening). Payment summary: Total · Paid · Pending. Actions: Download PDF · Share · Print · Mark Paid. |
+| SE-11 | Send Invoice Sheet | Channels: Push · SMS · WhatsApp; preview message. |
+| SE-12 | Generate Bill (Manual) | Pick customer · period · confirm. |
+| SE-13 | **Profit & Loss** | Tabs: Daily · Weekly · Monthly · Customer-Wise. Metrics: Total Milk Sold · Revenue · Expenses · Profit. Charts: Revenue Trend · Profit Trend · Consumption Trend. Export: PDF / Excel / CSV. |
+| SE-14 | Reports — Customer Detail | Consumption + payment history for a single customer. |
+| SE-15 | **Payment Management** | Collection overview: Today · Pending · Overdue. List of payments. FAB "+ Record Payment". |
+| SE-16 | Record Payment | Customer · Amount · Date · Method (Cash · UPI · Bank Transfer) · Reference · Notes. |
+| SE-17 | **Product Management** | Pre-seeded: Cow · Buffalo · Toned. Add Custom Product. Each product: name, image, unit, default rate, on/off. |
+| SE-18 | Pricing Management | Global pricing per product, plus per-customer overrides table. |
+| SE-19 | Bulk Price Update | Pick products → new rate → confirm with affected-customer count. |
+| SE-20 | **More Tab** | Profile, Settings, Backup/Restore, Help, Logout. |
+| SE-21 | Business Profile | Business Name, Address, GST Number. |
+| SE-22 | Notification Settings | Push toggles, SMS toggles, WhatsApp toggle. |
+| SE-23 | Backup / Restore | Auto-backup status, manual backup button, restore picker. |
+| SE-24 | Issues / Complaints Inbox | List with category & status; tap to view detail and update status. |
+| SE-25 | Complaint Detail | Read description, photo; update status (Open · In Progress · Resolved); add resolution note. |
 
 ---
 
 ## C. Buyer Panel Screens
 
 ### C.1 Navigation
-Bottom nav (4 items): **Home · Orders · Bills · Profile**.
+Bottom navigation (4 items): **Dashboard · Deliveries · Bills · Profile**.
 
-| ID | Screen | Purpose / Notes |
-|----|--------|-----------------|
-| BU-HOME-01 | **Home** | Cards: "Today's Delivery" status, "Active Subscriptions", "Bill Due ₹1,800 — Pay Now", quick actions row. |
-| BU-HOME-02 | Today's Delivery Detail | Status timeline, rate delivery, report issue. |
-| BU-SUB-01 | Subscriptions List | All active subs across linked sellers. |
-| BU-SUB-02 | Subscription Detail | Product, qty, frequency, calendar of paused/skipped days. Actions: Pause · Modify Qty · Cancel. |
-| BU-SUB-03 | Pause Picker | Date range, reason chip selection, confirm. |
-| BU-SUB-04 | Quantity Modifier | Toggle: "For one date" vs "Permanently". Number stepper. |
-| BU-SUB-05 | New Subscription | Pick seller → product → qty → frequency → start date. |
-| BU-ORD-01 | Orders Tab | Tabs: Active · Past. One-time orders. |
-| BU-ORD-02 | New One-time Order | Catalog grid; cart bottom sheet; delivery date. |
-| BU-ORD-03 | Order Detail | Items, status timeline, cancel. |
-| BU-BIL-01 | Bills Tab | Current month consumption + estimated bill. List of past invoices. |
-| BU-BIL-02 | Invoice Detail | Items, total, balance, "Pay Now". Share PDF. |
-| BU-BIL-03 | Pay Sheet | Method selector (UPI/Card/Netbanking), amount confirm. |
-| BU-BIL-04 | Payment Status | Success / Failure with retry. Receipt download. |
-| BU-BIL-05 | Ledger | Running list of debits & credits per seller. |
-| BU-ENG-01 | Rate Delivery | Thumbs up/down, reason chips, optional note. |
-| BU-ENG-02 | Raise Complaint | Category, photo, description. |
-| BU-ENG-03 | Complaints List | Tickets with status. |
-| BU-PRF-01 | Profile | Photo, name, phone, language, theme, biometric toggle. |
-| BU-PRF-02 | Addresses | List, add/edit, set default. |
-| BU-PRF-03 | Linked Sellers | View, add another via code/QR, unlink. |
-| BU-PRF-04 | Notifications Inbox | History of pushes, mark all read. |
-| BU-PRF-05 | Settings | Theme, language, account deletion. |
-| BU-PRF-06 | Help & Support | FAQ accordions, "Chat on WhatsApp" deep link. |
+### C.2 Screens
+
+| ID | Screen | Components / Notes |
+|----|--------|--------------------|
+| BU-01 | **Buyer Dashboard** | Welcome card (customer name). Milk summary: Morning Qty · Evening Qty · Monthly Consumption. Billing card: Current Bill · Due Date · Status. Quick actions: View Deliveries · View Bills · Pay Now · Raise Complaint. |
+| BU-02 | **Delivery History** | Table: Date · Morning · Evening · Status. Filters: Month · Date Range. |
+| BU-03 | **Calendar View** | Color-coded calendar — 🟡 Morning Delivered, 🔵 Evening Delivered, 🟢 Both, 🔴 Missed. Day click → bottom sheet (Quantity, Status, Notes). |
+| BU-04 | **Bills List** | Cards: Amount · Due Date · Status. Actions: View Invoice · Download PDF · Pay Online. |
+| BU-05 | **Invoice Detail** | Customer details · Delivery details (table) · Billing summary. Actions: Download PDF · Pay Online. |
+| BU-06 | **Pay Bill** | Method selector: UPI · Google Pay · PhonePe · Paytm · Card · Net Banking. Amount confirm. |
+| BU-07 | Payment Status | Success / Failure with retry. Receipt download. |
+| BU-08 | Payment History | Date · Amount · Method · Reference. |
+| BU-09 | **Manage Schedule** | Buttons: Pause Delivery · Resume Delivery · Vacation Mode · Extra Milk Request. |
+| BU-10 | Pause Picker | Date range, optional reason. |
+| BU-11 | Vacation Picker | Date range. |
+| BU-12 | Extra Milk Request | Date, slot, qty, product. |
+| BU-13 | **Raise Complaint** | Category: Delivery · Billing · Quantity · Other. Description. Optional photo. Submit. |
+| BU-14 | Complaints List | Tickets with status (Open · In Progress · Resolved). |
+| BU-15 | Complaint Detail | Status timeline, seller response. |
+| BU-16 | **Profile** | Personal Info: Name, Phone, Address. Preferences: Notifications, Language. |
+| BU-17 | Notifications Inbox | History list, mark read / read all. |
+| BU-18 | Linked Sellers | List, add via invite code, unlink. |
+| BU-19 | Settings | Theme, language, account deletion. |
 
 ---
 
-## D. Modal / Sheet Components (Shared)
+## D. Shared Components
 
 | Component | Used In |
 |-----------|---------|
-| Date range picker | Pause, reports, billing |
-| Number stepper sheet | Quantity edit |
+| Date range picker | Pause / Vacation / Reports / Billing |
+| Month picker | Calendar view, monthly reports |
+| Number stepper sheet | Edit quantity, extra request |
 | Confirm dialog | Destructive actions |
-| Share sheet | PDF invoice, invite |
-| Image preview | Proof photo, complaints |
+| Share sheet | Invoice PDF, exports |
+| Image preview | Complaint photos |
 | Toast / SnackBar | All success / error feedback |
+| Empty state | Each list with primary CTA |
+| Loading skeleton | Each list and dashboard |
+| Offline banner | Top of app while offline |
 
 ---
 
-## E. Accessibility Notes
+## E. Accessibility
 
-- All interactive elements have semantic labels.
-- Color-blind safe icons accompany color-coded statuses.
+- Semantic labels on all interactive elements.
+- Color-coded status icons paired with text labels (color-blind safe).
 - Text scales up to 200%.
 - All sheets dismissible with system back gesture.
+- High-contrast support; meets WCAG 2.1 AA.
 
 ---
 
 ## F. Reference-Design Mapping
 
-When the reference design is supplied:
+Once the reference design is supplied:
 
 1. Each screen ID above will be mapped to a Figma frame.
 2. Visual structure (spacing, hierarchy, primary action placement) must match exactly.
-3. Only the following may be tuned from the reference:
+3. Allowed deltas vs. reference:
    - Tap-target sizes raised to ≥ 48 dp.
    - Contrast raised to WCAG AA.
    - State feedback (loading / error / empty) added where missing.
