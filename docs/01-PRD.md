@@ -1,127 +1,604 @@
 # 01 — Product Requirements Document (PRD)
 
-## 1. Document Info
+**Product:** Milk Management System (MMS)
+**Version:** 1.0
+**Type:** Mobile Application (Android & iOS)
 
-| Field | Value |
-|-------|-------|
-| Product Name | **MilkFlow** (working title) |
-| Version | 1.0 |
-| Owner | Product / Engineering |
-| Status | Draft |
-| Platforms | Android, iOS |
+---
 
-## 2. Vision
+## 1. Executive Summary
 
-Build the simplest, fastest mobile app for local milk distributors and their customers — replacing notebooks, paper bills, and WhatsApp coordination with a single tool that handles **subscriptions, daily deliveries, billing, and payments** in under 30 seconds per task.
+The **Milk Management System (MMS)** digitizes daily milk delivery operations, customer management, billing, collections, reporting, and customer communication through a **single mobile application** containing two distinct panels:
 
-## 3. Problem Statement
+1. **Milk Seller Panel** — for distributors / dairy operators
+2. **Milk Buyer Panel** — for end customers
 
-Milk distribution in most regions is still managed manually:
+The system eliminates manual registers, paper bills, and calculation errors while providing real-time tracking and automated billing.
 
-- Distributors track daily deliveries on paper, leading to billing disputes.
-- Customers never know if a delivery was skipped or what they owe.
-- Pausing delivery for vacation requires phone calls.
-- Monthly billing takes hours to compute and is error-prone.
-- Cash collection is opaque and hard to reconcile.
+### Target Users
+- **Milk Sellers** — small/medium dairy distributors managing 20–500 customers
+- **Milk Buyers** — household customers receiving daily milk deliveries
 
-## 4. Goals & Non-Goals
+---
 
-### Goals
-- Allow a seller to mark daily deliveries for **100+ customers in under 5 minutes**.
-- Let a buyer pause delivery, change quantity, or pay a bill in **≤ 3 taps**.
-- Generate accurate monthly invoices automatically.
-- Work on low-end Android devices and intermittent connectivity (offline-first).
-- Support multiple products (cow milk, buffalo milk, curd, ghee, paneer).
+## 2. Business Problem
 
-### Non-Goals (v1)
-- Multi-distributor marketplace.
-- In-app chat (use WhatsApp deep link instead).
-- Inventory / cold-chain tracking.
-- Web admin (mobile-only in v1; web in v2).
+Current milk businesses face:
 
-## 5. Target Users & Personas
+- Manual customer records
+- Paper-based delivery tracking
+- Billing errors
+- Delayed collections
+- Missing delivery records
+- Lack of customer transparency
+- No performance analytics
+- Difficult customer management
+- No digital payment integration
 
-### Persona A — Ramesh, the Milk Distributor (Seller)
-- Age 35, runs a route of 80 households.
-- Owns a basic Android phone (4 GB RAM).
-- Wakes at 4 AM, finishes route by 8 AM.
-- Pain: paper notebook, monthly billing takes a full day.
+---
 
-### Persona B — Priya, the Household Customer (Buyer)
-- Age 32, working professional.
-- Wants 1 L cow milk daily, skips on weekends she travels.
-- Pain: never sure of pending dues, awkward to call distributor for changes.
+## 3. Product Goals
 
-### Persona C — Sunil, the Delivery Boy (Sub-role of Seller)
-- Works for Ramesh, only needs the "mark delivered" view for his route.
+| ID | Goal |
+|----|------|
+| G1 | Digitize complete milk delivery operations |
+| G2 | Automate monthly billing generation |
+| G3 | Improve payment collection efficiency |
+| G4 | Provide transparent delivery history |
+| G5 | Reduce operational workload by 80% |
+| G6 | Enable data-driven business decisions |
 
-## 6. Scope — Two Panels in One App
+---
 
-### Seller Panel (Admin / Distributor)
-1. Customer management (CRUD, address, route assignment)
-2. Product catalog (price, unit, availability)
-3. Subscription management per customer
-4. Daily delivery sheet (mark delivered / skipped / partial)
-5. Auto monthly billing & invoice PDF
-6. Payment recording (cash / online / UPI)
-7. Reports: revenue, dues, top customers, route performance
-8. Delivery staff sub-accounts with limited permissions
-9. Push notifications to customers
-10. Bulk price updates
+## 4. Success Metrics (KPIs)
 
-### Buyer Panel (Customer)
-1. Sign up via phone OTP, link to a seller via code/QR
-2. View today's delivery & monthly schedule
-3. Pause / resume delivery (date range)
-4. Change quantity for a date or permanently
-5. Browse products, place one-time orders
-6. View ledger, current dues, invoice history
-7. Pay online (UPI / card)
-8. Rate delivery, raise complaints
-9. Notifications (delivery confirmed, bill due, holiday)
-10. Multi-address / multi-member household
+| KPI | Target |
+|-----|--------|
+| Delivery Recording Time | < 2 minutes |
+| Bill Generation Time | < 30 seconds |
+| App Response Time | < 2 seconds |
+| Payment Collection Improvement | +40% |
+| Delivery Accuracy | 99% |
+| Customer Satisfaction | 4.5+ rating |
+| Daily Active Users | 70%+ |
+| Billing Errors | < 1% |
 
-## 7. Key Design Principles
+---
 
-- **Mobile-first**, single-hand operation, large tap targets (≥ 48 dp).
-- **Material Design 3** with dynamic color, elevation tokens.
-- **Light + Dark** themes from day one.
-- **Minimum taps** for daily ops — Seller "mark all delivered" is one tap.
-- **Offline-first** — daily delivery sheet works without network and syncs.
-- **Role-based UI** — same app, two completely different homes.
-- **Localization** — English + Hindi at launch; structure supports more.
-- **Accessibility** — WCAG 2.1 AA, screen reader labels, scalable text.
+## 5. User Roles
 
-> The visual structure of the provided reference design must be preserved. Improvements are limited to spacing, contrast, tap-target size, and state feedback — not layout reorganization.
+### Role 1: Milk Seller
+**Permissions**
+- ✅ Manage Customers
+- ✅ Record Deliveries
+- ✅ Generate Bills
+- ✅ Track Payments
+- ✅ View Reports
+- ✅ Export Data
+- ✅ Manage Products
+- ✅ Manage Pricing
+- ✅ Manage Business Settings
 
-## 8. Success Metrics
+### Role 2: Milk Buyer
+**Permissions**
+- ✅ View Deliveries
+- ✅ View Bills
+- ✅ Download Invoices
+- ✅ Pay Bills
+- ✅ Raise Complaints
+- ✅ Manage Profile
 
-| Metric | Target (6 months post-launch) |
-|--------|------------------------------|
-| Active sellers | 500 |
-| Active buyers | 25,000 |
-| Daily delivery marking time | < 5 min for 100 customers |
-| Buyer payment-on-time rate | > 80 % |
-| App crash-free sessions | > 99.5 % |
-| Day-1 retention (Buyer) | > 70 % |
-| App store rating | ≥ 4.5 |
+---
 
-## 9. Constraints & Assumptions
+## 6. User Journey
 
-- Sellers may have only intermittent 2G/3G — sync must be resilient.
-- SMS OTP cost is borne by the platform; budget for 2 OTPs / signup.
-- Initial launch: India region; currency INR; timezone IST.
-- Compliance: data stored within region; PII encrypted at rest.
+### Seller Journey
+```
+Open App → Select Milk Seller → Login → Dashboard
+        → Record Daily Deliveries → Generate Monthly Bills
+        → Collect Payments → Review Reports
+```
 
-## 10. Risks
+### Buyer Journey
+```
+Open App → Select Milk Buyer → Login → View Deliveries
+        → Check Bills → Make Payment → Track History
+```
 
-| Risk | Mitigation |
-|------|------------|
-| Low digital literacy among sellers | Onboarding video, big icons, voice prompts |
-| Payment failures break trust | Clear retry, offline cash recording fallback |
-| Sync conflicts (offline edits) | Server-authoritative with conflict log |
-| Seasonal demand spikes (festivals) | Auto-scaling backend, queue-based notifications |
+---
 
-## 11. Out-of-Scope Clarifications
+## 7. Application Flow
 
-If a "reference design" image is supplied separately, layout must match it 1:1; this PRD does not override the visual structure of that reference.
+### Screen 1: Splash Screen
+**Purpose:** Brand introduction and initialization.
+
+**Components**
+- App Logo
+- App Name
+- Loading Indicator
+
+**Actions**
+- Check Internet
+- Verify Login Session
+- Load User Preferences
+
+### Screen 2: User Selection Screen
+**Purpose:** Allow users to choose system role.
+
+**Components**
+- Button: **Milk Seller**
+- Button: **Milk Buyer**
+
+**Additional Links**
+- Login
+- Register
+- Help
+- Language
+
+---
+
+## 8. Seller Panel Requirements
+
+### Seller Dashboard
+**Purpose:** Provide operational overview.
+
+**Summary Cards**
+- Total Milk Today
+- Delivered Milk
+- Revenue Today
+- Active Customers
+- Pending Payments
+- Collections Today
+
+**Quick Actions**
+- Add Customer
+- Generate Bill
+- Add Delivery
+- Record Payment
+- Export Report
+
+**Charts**
+- Milk Trend
+- Revenue Trend
+- Customer Growth
+
+**Delivery Summary**
+- Pending
+- Completed
+- Missed
+
+**Notifications**
+- Due Payments
+- Missed Deliveries
+- New Customers
+
+### Delivery Report Screen
+**Purpose:** Manage daily deliveries.
+
+**Filters**
+- Date
+- Morning
+- Evening
+
+**Customer Row Fields**
+- Customer Name
+- Quantity
+- Status
+
+**Customer Row Actions**
+- **Tap** → Delivered
+- **Swipe Left** → Missed
+- **Long Press** → Edit Quantity
+
+**Footer Summary**
+- Total Milk
+- Delivered Milk
+- Pending Milk
+
+### Customer Management
+**Search**
+- Name
+- Mobile Number
+
+**Filters**
+- Active
+- Paused
+- Due Payment
+
+**Customer Information**
+- Name
+- Phone
+- Address
+- Quantity
+- Rate
+- Status
+
+**Actions**
+- Add
+- Edit
+- Delete
+- Pause
+- Generate Bill
+
+### Add / Edit Customer
+**Basic Information**
+- Customer Name
+- Mobile Number
+- Alternate Number
+- Address
+
+**Delivery Settings**
+- **Delivery Type:** Morning · Evening · Both
+- Morning Quantity
+- Evening Quantity
+
+**Pricing**
+- Milk Rate
+
+**Billing**
+- Start Date
+- Billing Cycle
+
+**Status**
+- Active
+- Pause
+
+### Billing Management
+**Tabs**
+- All
+- Pending
+- Paid
+- Overdue
+
+**Bill Record**
+- Customer Name
+- Billing Period
+- Amount
+- Due Date
+- Status
+
+**Actions**
+- Open Invoice
+- Send Invoice
+- Mark Paid
+- Download PDF
+
+### Invoice Details
+**Customer Details**
+- Name
+- Phone
+- Address
+
+**Billing Details**
+- Invoice Number
+- Billing Period
+- Generated Date
+
+**Delivery Breakdown**
+| Date | Morning | Evening |
+|------|---------|---------|
+
+**Payment Summary**
+- Total Amount
+- Paid Amount
+- Pending Amount
+
+**Actions**
+- Download PDF
+- Share
+- Print
+- Mark Paid
+
+### Profit & Loss
+**Tabs**
+- Daily
+- Weekly
+- Monthly
+- Customer Wise
+
+**Metrics**
+- Total Milk Sold
+- Revenue
+- Expenses
+- Profit
+
+**Charts**
+- Revenue Trend
+- Profit Trend
+- Consumption Trend
+
+**Export**
+- PDF
+- Excel
+- CSV
+
+### Payment Management
+**Collection Overview**
+- Today's Collection
+- Pending Collection
+- Overdue Collection
+
+**Payment Entry — Fields**
+- Customer
+- Amount
+- Date
+- Method
+
+**Payment Methods**
+- Cash
+- UPI
+- Bank Transfer
+
+### Product Management
+**Milk Types**
+- Cow Milk
+- Buffalo Milk
+- Toned Milk
+- Custom Product
+
+**Pricing Management**
+- Global Pricing
+- Customer Pricing
+
+### Settings
+**Business Profile**
+- Business Name
+- Address
+- GST Number
+
+**Notification Settings**
+- Push Notifications
+- SMS Alerts
+
+**Data Settings**
+- Backup
+- Restore
+
+---
+
+## 9. Buyer Panel Requirements
+
+### Buyer Dashboard
+**Welcome Card** — Customer Name
+
+**Milk Summary**
+- Morning Quantity
+- Evening Quantity
+- Monthly Consumption
+
+**Billing Card**
+- Current Bill
+- Due Date
+- Status
+
+**Quick Actions**
+- View Deliveries
+- View Bills
+- Pay Now
+- Raise Complaint
+
+### Delivery History
+| Date | Morning | Evening | Status |
+|------|---------|---------|--------|
+
+**Filters**
+- Month
+- Date Range
+
+### Bills & Payments
+**Bills List**
+- Amount
+- Due Date
+- Status
+
+**Actions**
+- View Invoice
+- Download PDF
+- Pay Online
+
+**Payment History**
+- Date
+- Amount
+- Method
+
+### Invoice Details
+- Customer Details
+- Delivery Details
+- Billing Summary
+
+**Actions**
+- Download PDF
+
+### Calendar View — Delivery Status Colors
+
+| Color | Meaning |
+|-------|---------|
+| 🟡 Yellow | Morning Delivered |
+| 🔵 Blue | Evening Delivered |
+| 🟢 Green | Both Delivered |
+| 🔴 Red | Missed Delivery |
+
+**Day Click — Show**
+- Quantity
+- Status
+- Notes
+
+### Delivery Schedule Management
+- Pause Delivery
+- Resume Delivery
+- Vacation Mode
+- Extra Milk Request
+
+### Complaint Management
+**Create Ticket — Categories**
+- Delivery Issue
+- Billing Issue
+- Quantity Issue
+- Other
+
+**Status**
+- Open
+- In Progress
+- Resolved
+
+### Profile Settings
+**Personal Information**
+- Name
+- Phone
+- Address
+
+**Preferences**
+- Notifications
+- Language
+
+---
+
+## 10. Functional Requirements
+
+### Authentication
+**Login**
+- Mobile OTP
+- Email Login
+
+**Registration**
+- Seller Registration
+- Buyer Registration
+
+**Password Recovery**
+- OTP Verification
+
+### Notifications
+**Types**
+- Bill Generated
+- Payment Due
+- Delivery Completed
+- Delivery Missed
+
+**Channels**
+- Push Notification
+- SMS
+- WhatsApp
+
+### Payments — Supported Methods
+- UPI
+- Google Pay
+- PhonePe
+- Paytm
+- Debit Card
+- Credit Card
+- Net Banking
+
+### Reports
+**Daily Report** — Milk Delivered, Revenue
+**Monthly Report** — Customer Billing, Revenue Summary
+**Customer Report** — Consumption, Payment History
+
+---
+
+## 11. Non-Functional Requirements
+
+### Performance
+- Response Time: **< 2 seconds**
+- Bill Generation: **< 30 seconds**
+
+### Security
+- JWT Authentication
+- HTTPS Encryption
+- Password Hashing
+- Secure APIs
+
+### Availability
+- Uptime: **99.9%**
+
+### Scalability
+- 100,000 Customers
+- Multiple Routes
+- Multiple Sellers
+
+### Backup
+- Automatic Daily Backup
+- Manual Backup Option
+
+---
+
+## 12. Database Entities (High-level)
+
+| Entity | Key Fields |
+|--------|-----------|
+| Users | UserID, Role, Name, Phone |
+| Customers | CustomerID, Address, Status |
+| Deliveries | DeliveryID, Date, Quantity |
+| Bills | BillID, CustomerID, Amount |
+| Payments | PaymentID, Amount, Method |
+| Products | ProductID, ProductName, Rate |
+| Complaints | TicketID, Status |
+
+(Full schema in [04-Database-Structure.md](04-Database-Structure.md).)
+
+---
+
+## 13. Recommended Technology Stack
+
+| Layer | Choice |
+|-------|--------|
+| Mobile App | **Flutter** (or React Native) |
+| Backend | **Node.js + NestJS** |
+| Database | PostgreSQL |
+| Authentication | Firebase Authentication |
+| Storage | AWS S3 |
+| Notifications | Firebase Cloud Messaging |
+| Payments | Razorpay · PhonePe · Cashfree |
+
+---
+
+## 14. Future Enhancements
+
+### Phase 2
+- Route Optimization
+- GPS Delivery Tracking
+- QR Code Customer Identification
+- WhatsApp Billing Automation
+- Multi-Language Support
+
+### Phase 3
+- AI Revenue Forecasting
+- Demand Prediction
+- Smart Collection Reminders
+- Voice-Based Delivery Entry
+
+---
+
+## 15. MVP Scope (Version 1 Launch)
+
+### Included
+- ✅ Authentication
+- ✅ Seller Dashboard
+- ✅ Buyer Dashboard
+- ✅ Customer Management
+- ✅ Delivery Recording
+- ✅ Billing
+- ✅ Invoice Generation
+- ✅ Payment Recording
+- ✅ Reports
+- ✅ Notifications
+- ✅ Calendar View
+- ✅ Complaint System
+
+### Excluded
+- ❌ AI Analytics
+- ❌ GPS Tracking
+- ❌ Route Optimization
+- ❌ Multi-Seller Marketplace
+- ❌ IoT Milk Meter Integration
+
+---
+
+## 16. Design Direction
+
+- **Material Design 3** with light + dark themes
+- **Mobile-first**, single-hand operation, ≥ 48 dp tap targets
+- **Localization** ready (English + Hindi at launch)
+- **Accessibility** WCAG 2.1 AA
+- **Reference Design** layout (when supplied) must be preserved 1:1; only spacing, contrast, tap-target size, and state feedback may be tuned
+
+This PRD provides sufficient detail for UI/UX design, database design, API development, Flutter/React Native implementation, backend architecture, testing, and deployment planning.

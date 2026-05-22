@@ -2,32 +2,29 @@
 
 **Database:** PostgreSQL 15+
 **Cache / queue:** Redis 7+
-**Encoding:** UTF-8, timezone stored as UTC, displayed in user TZ.
-**ID strategy:** UUID v4 primary keys; short `code` columns for human-readable IDs (e.g., invite codes, invoice numbers).
-**Soft delete:** `deleted_at` nullable timestamp on user-facing tables.
-**Audit:** `created_at`, `updated_at` everywhere; auto-updated via trigger.
+**Storage:** AWS S3 (invoice PDFs, profile photos, complaint photos)
+**Encoding:** UTF-8; timestamps stored UTC; displayed in user TZ
+**ID strategy:** UUID v4 primary keys
+**Audit:** `created_at`, `updated_at` everywhere; auto-trigger updates `updated_at`
+**Soft delete:** `deleted_at` nullable timestamp on user-facing tables
 
 ---
 
-## 1. Entity-Relationship Overview
+## 1. Entity Relationship Overview
 
 ```
-users ──┬──< sellers (1:1 if role=seller)
-        └──< buyers  (1:1 if role=buyer)
+users ──┬──> sellers   (1:1 if role=seller)
+        └──> buyers    (1:1 if role=buyer)
 
-sellers ──< staff
 sellers ──< products
-sellers ──< routes
-sellers ──< customers ──> buyers           (link table; one buyer can be customer of many sellers)
-customers ──< addresses
-customers ──< subscriptions ──> products
-subscriptions ──< subscription_pauses
-subscriptions ──< delivery_records         (one per day per subscription)
-customers ──< invoices ──< invoice_items
-invoices ──< payments
-customers ──< orders ──< order_items       (one-time orders)
-sellers ──< notifications_log
+sellers ──< customers ──> buyers       (link table)
+customers ──< deliveries               (one row per day per slot)
+customers ──< bills ──< bill_items
+bills ──< payments
+customers ──< schedule_changes         (pauses, vacations, extra requests)
 customers ──< complaints
+sellers ──< notifications_log
+sellers ──< business_settings
 ```
 
 ---
@@ -35,275 +32,248 @@ customers ──< complaints
 ## 2. Tables
 
 ### 2.1 `users`
-Holds anyone who logs in (sellers, buyers, staff).
+Anyone who logs in (sellers and buyers).
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | UUID PK | |
-| `phone` | VARCHAR(15) UNIQUE | E.164 format |
-| `role` | ENUM('seller','buyer','staff','admin') | Required |
+| `role` | ENUM('seller','buyer','admin') | Required |
 | `name` | VARCHAR(120) | |
-| `email` | VARCHAR(160) | Optional |
+| `phone` | VARCHAR(15) UNIQUE | E.164 |
+| `email` | VARCHAR(160) UNIQUE | Optional |
+| `password_hash` | TEXT | bcrypt; only if email login used |
 | `photo_url` | TEXT | |
-| `language` | VARCHAR(8) | Default 'en' |
+| `language` | VARCHAR(8) | Default `en` |
 | `theme` | ENUM('system','light','dark') | |
 | `fcm_token` | TEXT | For push |
 | `is_active` | BOOLEAN | Default true |
 | `last_login_at` | TIMESTAMPTZ | |
-| `created_at` / `updated_at` / `deleted_at` | TIMESTAMPTZ | |
+| `created_at`, `updated_at`, `deleted_at` | TIMESTAMPTZ | |
 
-Indexes: `phone`, `role`.
+Indexes: `phone`, `email`, `role`.
 
 ### 2.2 `sellers`
-Business profile of a distributor.
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | UUID PK | |
 | `user_id` | UUID FK → users.id | UNIQUE |
 | `business_name` | VARCHAR(160) | |
-| `gst_number` | VARCHAR(20) | Optional |
 | `address` | TEXT | |
-| `lat` / `lng` | NUMERIC(10,7) | |
-| `invite_code` | VARCHAR(8) UNIQUE | Used by buyers |
-| `currency` | VARCHAR(3) | Default 'INR' |
-| `timezone` | VARCHAR(64) | Default 'Asia/Kolkata' |
-| `billing_cycle_day` | SMALLINT | 1–28; day invoices generate |
-| `created_at` / `updated_at` | TIMESTAMPTZ | |
+| `gst_number` | VARCHAR(20) | Optional |
+| `lat`, `lng` | NUMERIC(10,7) | |
+| `currency` | VARCHAR(3) | Default `INR` |
+| `timezone` | VARCHAR(64) | Default `Asia/Kolkata` |
+| `billing_cycle_day` | SMALLINT | 1–28; day bills auto-generate |
+| `default_milk_rate` | NUMERIC(10,2) | Fallback rate |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
 
-### 2.3 `staff`
-Delivery boys; sub-accounts under a seller.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | UUID PK | |
-| `seller_id` | UUID FK → sellers.id | |
-| `user_id` | UUID FK → users.id | UNIQUE |
-| `assigned_route_ids` | UUID[] | Array |
-| `permissions` | JSONB | Granular flags |
-| `created_at` / `updated_at` | TIMESTAMPTZ | |
-
-### 2.4 `buyers`
-Customer profile (from buyer's perspective).
+### 2.3 `buyers`
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | UUID PK | |
 | `user_id` | UUID FK → users.id | UNIQUE |
-| `default_address_id` | UUID FK → addresses.id | |
-| `created_at` / `updated_at` | TIMESTAMPTZ | |
+| `default_address` | TEXT | |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
 
-### 2.5 `customers`
-Link between a seller and a buyer. A buyer can be a customer of multiple sellers.
+### 2.4 `customers`
+A seller's view of a buyer. A buyer record is auto-linked when phone matches.
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | UUID PK | |
 | `seller_id` | UUID FK → sellers.id | |
 | `buyer_id` | UUID FK → buyers.id | NULL until buyer signs up |
-| `name` | VARCHAR(120) | Snapshot for offline-added customers |
+| `name` | VARCHAR(120) | |
 | `phone` | VARCHAR(15) | |
-| `route_id` | UUID FK → routes.id | |
-| `address_id` | UUID FK → addresses.id | |
-| `status` | ENUM('active','paused','archived') | |
+| `alt_phone` | VARCHAR(15) | |
+| `address` | TEXT | |
+| `lat`, `lng` | NUMERIC(10,7) | |
+| `delivery_type` | ENUM('morning','evening','both') | |
+| `morning_quantity` | NUMERIC(8,3) | Litres |
+| `evening_quantity` | NUMERIC(8,3) | Litres |
+| `milk_rate` | NUMERIC(10,2) | Per-customer override |
+| `product_id` | UUID FK → products.id | Default product |
+| `billing_cycle` | ENUM('monthly','weekly') | Default monthly |
+| `billing_start_date` | DATE | |
+| `status` | ENUM('active','paused','due_payment','archived') | |
 | `linked_at` | TIMESTAMPTZ | When buyer self-linked |
-| `created_at` / `updated_at` / `deleted_at` | TIMESTAMPTZ | |
+| `created_at`, `updated_at`, `deleted_at` | TIMESTAMPTZ | |
 
 UNIQUE(`seller_id`, `phone`).
+Indexes: `(seller_id, status)`, `(seller_id, name text_pattern_ops)`.
 
-### 2.6 `addresses`
-
-| Column | Type |
-|--------|------|
-| `id` | UUID PK |
-| `owner_id` | UUID (buyer or customer) |
-| `owner_type` | ENUM('buyer','customer') |
-| `label` | VARCHAR(40) — Home/Office |
-| `line1`, `line2`, `city`, `state`, `pincode` | TEXT |
-| `lat`, `lng` | NUMERIC(10,7) |
-| `landmark` | TEXT |
-
-### 2.7 `routes`
-
-| Column | Type |
-|--------|------|
-| `id` | UUID PK |
-| `seller_id` | UUID FK |
-| `name` | VARCHAR(60) |
-| `sequence_order` | INTEGER |
-| `default_staff_id` | UUID FK → staff.id |
-
-### 2.8 `products`
+### 2.5 `products`
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | UUID PK | |
-| `seller_id` | UUID FK | |
-| `name` | VARCHAR(80) | Cow Milk, Buffalo Milk… |
-| `unit` | ENUM('liter','ml','kg','g','piece') | |
-| `default_price` | NUMERIC(10,2) | |
+| `seller_id` | UUID FK | NULL = system-seeded (Cow/Buffalo/Toned) |
+| `name` | VARCHAR(80) | |
+| `type` | ENUM('cow','buffalo','toned','custom') | |
+| `unit` | ENUM('liter','ml','kg','piece') | Default `liter` |
+| `default_rate` | NUMERIC(10,2) | |
 | `image_url` | TEXT | |
 | `is_active` | BOOLEAN | |
-| `tax_percent` | NUMERIC(5,2) | Default 0 |
 
-### 2.9 `subscriptions`
+### 2.6 `deliveries`
+**Critical table.** One row per (customer × date × slot). Pre-generated by daily cron.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID PK | |
+| `seller_id` | UUID FK | Denormalized |
+| `customer_id` | UUID FK | |
+| `product_id` | UUID FK | |
+| `delivery_date` | DATE | |
+| `slot` | ENUM('morning','evening') | |
+| `expected_quantity` | NUMERIC(8,3) | |
+| `delivered_quantity` | NUMERIC(8,3) | NULL until marked |
+| `unit_rate` | NUMERIC(10,2) | Snapshotted at generation |
+| `status` | ENUM('pending','delivered','missed','partial','extra') | |
+| `notes` | TEXT | |
+| `marked_by_user_id` | UUID FK | |
+| `marked_at` | TIMESTAMPTZ | |
+| `created_at` | TIMESTAMPTZ | |
+
+Constraints:
+- UNIQUE(`customer_id`, `delivery_date`, `slot`)
+- Indexes: `(seller_id, delivery_date, slot)`, `(customer_id, delivery_date DESC)`
+
+### 2.7 `schedule_changes`
+Records pauses, vacations, and extra requests.
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | UUID PK | |
 | `customer_id` | UUID FK | |
-| `product_id` | UUID FK | |
-| `quantity` | NUMERIC(8,3) | e.g., 1.5 L |
-| `frequency` | ENUM('daily','alternate','weekly','custom') | |
-| `custom_days` | SMALLINT[] | 0–6 (Sun–Sat) |
-| `price_override` | NUMERIC(10,2) | Optional per-customer price |
-| `start_date` | DATE | |
-| `end_date` | DATE | NULL = ongoing |
-| `status` | ENUM('active','paused','cancelled') | |
-| `created_at` / `updated_at` | TIMESTAMPTZ | |
+| `type` | ENUM('pause','vacation','extra_request','resume') | |
+| `from_date` | DATE | |
+| `to_date` | DATE | NULL for resume |
+| `extra_quantity` | NUMERIC(8,3) | For `extra_request` |
+| `extra_slot` | ENUM('morning','evening') | For `extra_request` |
+| `reason` | TEXT | |
+| `created_by_role` | ENUM('seller','buyer') | |
+| `created_by_user_id` | UUID FK | |
+| `created_at` | TIMESTAMPTZ | |
 
-### 2.10 `subscription_pauses`
-
-| Column | Type |
-|--------|------|
-| `id` | UUID PK |
-| `subscription_id` | UUID FK |
-| `from_date`, `to_date` | DATE |
-| `created_by_role` | ENUM('seller','buyer') |
-| `reason` | TEXT |
-
-### 2.11 `delivery_records`
-One row per (subscription, delivery_date). Generated daily by a job.
+### 2.8 `bills`
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | UUID PK | |
-| `subscription_id` | UUID FK | |
-| `customer_id` | UUID FK | Denormalized for fast queries |
-| `seller_id` | UUID FK | Denormalized |
-| `route_id` | UUID FK | Denormalized snapshot |
-| `delivery_date` | DATE | |
-| `expected_quantity` | NUMERIC(8,3) | |
-| `delivered_quantity` | NUMERIC(8,3) | NULL = not yet processed |
-| `unit_price` | NUMERIC(10,2) | Snapshot |
-| `status` | ENUM('pending','delivered','skipped','partial') | |
-| `marked_by_user_id` | UUID FK → users.id | |
-| `marked_at` | TIMESTAMPTZ | |
-| `proof_photo_url` | TEXT | |
-| `notes` | TEXT | |
-
-UNIQUE(`subscription_id`, `delivery_date`).
-Indexes: `(seller_id, delivery_date, route_id)`, `(customer_id, delivery_date)`.
-
-### 2.12 `orders` (one-time)
-
-| Column | Type |
-|--------|------|
-| `id` | UUID PK |
-| `customer_id` | UUID FK |
-| `seller_id` | UUID FK |
-| `delivery_date` | DATE |
-| `status` | ENUM('pending','accepted','delivered','cancelled') |
-| `total_amount` | NUMERIC(10,2) |
-| `notes` | TEXT |
-
-### 2.13 `order_items`
-
-| Column | Type |
-|--------|------|
-| `id` | UUID PK |
-| `order_id` | UUID FK |
-| `product_id` | UUID FK |
-| `quantity` | NUMERIC(8,3) |
-| `unit_price` | NUMERIC(10,2) |
-
-### 2.14 `invoices`
-
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | UUID PK | |
-| `invoice_number` | VARCHAR(20) UNIQUE | e.g., INV-2026-05-0001 |
+| `bill_number` | VARCHAR(20) UNIQUE | e.g., `INV-2026-05-0001` |
 | `seller_id` | UUID FK | |
 | `customer_id` | UUID FK | |
 | `period_start` | DATE | |
 | `period_end` | DATE | |
 | `subtotal` | NUMERIC(12,2) | |
-| `tax_total` | NUMERIC(12,2) | |
-| `discount` | NUMERIC(12,2) | |
+| `tax_amount` | NUMERIC(12,2) | |
+| `discount` | NUMERIC(12,2) | Default 0 |
 | `total_amount` | NUMERIC(12,2) | |
 | `paid_amount` | NUMERIC(12,2) | Default 0 |
-| `balance` | NUMERIC(12,2) GENERATED | total - paid |
-| `status` | ENUM('draft','issued','partial','paid','void') | |
+| `balance` | NUMERIC(12,2) | Generated: total - paid |
 | `due_date` | DATE | |
-| `pdf_url` | TEXT | |
+| `status` | ENUM('draft','pending','partial','paid','overdue','void') | |
+| `pdf_url` | TEXT | S3 path |
+| `generated_at` | TIMESTAMPTZ | |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
 
-### 2.15 `invoice_items`
+Indexes: `(seller_id, status, due_date)`, `(customer_id, period_end DESC)`.
 
-| Column | Type |
-|--------|------|
-| `id` | UUID PK |
-| `invoice_id` | UUID FK |
-| `product_id` | UUID FK |
-| `description` | TEXT |
-| `quantity_total` | NUMERIC(10,3) |
-| `unit_price` | NUMERIC(10,2) |
-| `line_total` | NUMERIC(12,2) |
-
-### 2.16 `payments`
+### 2.9 `bill_items`
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | UUID PK | |
-| `invoice_id` | UUID FK | NULL if advance |
-| `customer_id` | UUID FK | |
+| `bill_id` | UUID FK | |
+| `delivery_date` | DATE | |
+| `slot` | ENUM('morning','evening') | |
+| `product_id` | UUID FK | |
+| `quantity` | NUMERIC(8,3) | |
+| `unit_rate` | NUMERIC(10,2) | |
+| `line_total` | NUMERIC(12,2) | |
+
+### 2.10 `payments`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID PK | |
 | `seller_id` | UUID FK | |
+| `customer_id` | UUID FK | |
+| `bill_id` | UUID FK | NULL if advance |
 | `amount` | NUMERIC(12,2) | |
-| `method` | ENUM('cash','upi','card','netbanking','bank_transfer','adjustment') | |
-| `reference` | VARCHAR(80) | UPI txn id, etc. |
-| `gateway` | VARCHAR(40) | razorpay/stripe |
+| `method` | ENUM('cash','upi','google_pay','phonepe','paytm','debit_card','credit_card','net_banking','bank_transfer','adjustment') | |
+| `reference` | VARCHAR(80) | UPI ref / cheque no. |
+| `gateway` | VARCHAR(40) | razorpay / phonepe / cashfree |
+| `gateway_order_id` | VARCHAR(80) | |
 | `gateway_payment_id` | VARCHAR(80) | |
 | `status` | ENUM('pending','success','failed','refunded') | |
 | `recorded_by_user_id` | UUID FK | |
 | `paid_at` | TIMESTAMPTZ | |
+| `created_at` | TIMESTAMPTZ | |
 
-### 2.17 `complaints`
+Indexes: `(seller_id, paid_at DESC)`, `(bill_id)`, `(gateway_payment_id)`.
 
-| Column | Type |
-|--------|------|
-| `id` | UUID PK |
-| `customer_id` | UUID FK |
-| `delivery_record_id` | UUID FK |
-| `category` | ENUM('missed','spoiled','late','wrong_quantity','other') |
-| `description` | TEXT |
-| `photo_url` | TEXT |
-| `status` | ENUM('open','in_progress','resolved','rejected') |
-| `resolution_note` | TEXT |
+### 2.11 `complaints`
 
-### 2.18 `notifications_log`
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID PK | Visible as `ticket_id` to user |
+| `customer_id` | UUID FK | |
+| `seller_id` | UUID FK | |
+| `category` | ENUM('delivery','billing','quantity','other') | |
+| `description` | TEXT | |
+| `photo_url` | TEXT | S3 |
+| `delivery_id` | UUID FK | Optional link |
+| `bill_id` | UUID FK | Optional link |
+| `status` | ENUM('open','in_progress','resolved','rejected') | Default `open` |
+| `resolution_note` | TEXT | |
+| `resolved_at` | TIMESTAMPTZ | |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
+
+### 2.12 `notifications_log`
 
 | Column | Type |
 |--------|------|
 | `id` | UUID PK |
 | `user_id` | UUID FK |
-| `type` | VARCHAR(40) |
+| `type` | VARCHAR(40) — bill_generated, payment_due, delivery_completed, delivery_missed, complaint_update, etc. |
+| `channel` | ENUM('push','sms','whatsapp') |
 | `title` | VARCHAR(120) |
 | `body` | TEXT |
 | `data` | JSONB |
 | `is_read` | BOOLEAN |
 | `sent_at` | TIMESTAMPTZ |
 
-### 2.19 `audit_log` (admin-level)
+### 2.13 `business_settings`
+
+| Column | Type |
+|--------|------|
+| `id` | UUID PK |
+| `seller_id` | UUID FK UNIQUE |
+| `enable_push` | BOOLEAN |
+| `enable_sms` | BOOLEAN |
+| `enable_whatsapp` | BOOLEAN |
+| `auto_backup_enabled` | BOOLEAN |
+| `payment_gateways` | JSONB | Enabled list + keys (encrypted) |
+| `last_backup_at` | TIMESTAMPTZ |
+
+### 2.14 `audit_log`
 
 | Column | Type |
 |--------|------|
 | `id` | UUID PK |
 | `actor_user_id` | UUID FK |
 | `action` | VARCHAR(60) |
-| `entity_type` / `entity_id` | TEXT / UUID |
-| `before` / `after` | JSONB |
+| `entity_type` | VARCHAR(40) |
+| `entity_id` | UUID |
+| `before` | JSONB |
+| `after` | JSONB |
 | `created_at` | TIMESTAMPTZ |
 
-### 2.20 `device_sessions`
+### 2.15 `device_sessions`
 
 | Column | Type |
 |--------|------|
@@ -317,45 +287,52 @@ Indexes: `(seller_id, delivery_date, route_id)`, `(customer_id, delivery_date)`.
 
 ---
 
-## 3. Indexing Strategy
+## 3. Generated Columns & Triggers
+
+- `bills.balance` is a generated column (`total_amount - paid_amount`).
+- AFTER UPDATE trigger on `payments.status = 'success'` → updates `bills.paid_amount` and re-computes `bills.status`.
+- AFTER INSERT trigger on `deliveries (status='delivered')` → enqueues push to buyer.
+- AFTER INSERT trigger on `schedule_changes` (pause/vacation) → marks future overlapping `deliveries` as `missed` with reason='paused'.
+
+---
+
+## 4. Indexing Strategy
 
 | Index | Reason |
 |-------|--------|
-| `delivery_records (seller_id, delivery_date)` | Daily delivery sheet query |
-| `delivery_records (customer_id, delivery_date DESC)` | Buyer history |
-| `subscriptions (customer_id, status)` | Active subs lookup |
-| `invoices (seller_id, status, due_date)` | Pending dues report |
-| `payments (seller_id, paid_at DESC)` | Revenue report |
-| `customers (seller_id, route_id)` | Route view |
+| `deliveries (seller_id, delivery_date, slot)` | Daily delivery sheet (Morning/Evening filter) |
+| `deliveries (customer_id, delivery_date DESC)` | Buyer history & calendar |
+| `customers (seller_id, status)` | Active/Paused/Due filters |
+| `bills (seller_id, status, due_date)` | Pending dues / overdue tabs |
+| `payments (seller_id, paid_at DESC)` | Today's collection |
+| `complaints (seller_id, status, created_at DESC)` | Issues inbox |
 
 ---
 
-## 4. Important Constraints & Triggers
+## 5. Row-Level Security (RLS)
 
-- Trigger to auto-update `updated_at` on every UPDATE.
-- `delivery_records` UNIQUE(`subscription_id`, `delivery_date`) — prevents duplicate generation.
-- `invoices.balance` is a generated column.
-- ON DELETE: archive (soft delete), never CASCADE on financial tables.
-- Row-Level Security (RLS) enabled: each seller can only read their own rows; buyers only their own.
+- Seller can only access rows where `seller_id = current_user.seller_id`.
+- Buyer can only access rows where `buyer_id = current_user.buyer_id` or `customer_id IN (select id from customers where buyer_id = current_user.buyer_id)`.
 
 ---
 
-## 5. Caching (Redis)
+## 6. Caching (Redis)
 
-| Key pattern | TTL | Use |
-|-------------|-----|-----|
-| `otp:{phone}` | 5 min | OTP verification |
-| `session:{userId}` | 30 d | Active sessions |
-| `today:{sellerId}:routes` | 5 min | Daily sheet pre-fetch |
-| `rate:{ip}` | 1 min | Rate limiting |
-| `notif:queue` | — | Pending push notifications |
+| Key | TTL | Use |
+|-----|-----|-----|
+| `otp:{phone}` | 5 min | OTP store |
+| `session:{userId}` | 30 d | JWT refresh whitelist |
+| `dashboard:seller:{id}` | 60 s | Dashboard summary cache |
+| `dashboard:buyer:{id}` | 60 s | Buyer home cache |
+| `rate:{ip}` | 1 min | Rate limit |
+| `notif:queue` | — | Outgoing notification jobs |
 
 ---
 
-## 6. Data Retention
+## 7. Backup & Retention
 
-- Active records: indefinite.
-- Soft-deleted records: 12 months, then hard-purged.
-- OTPs: never persisted past 5 min.
-- Audit log: 24 months.
-- Crash logs: 90 days.
+- **Automatic daily backup:** logical dump (`pg_dump`) → S3, retained 30 days.
+- **Manual backup:** seller-triggered export (Excel/CSV) of customers, deliveries, bills.
+- Soft-deleted rows hard-purged after 12 months.
+- Audit log kept 24 months.
+- OTPs never persisted past 5 min.

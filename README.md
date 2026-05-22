@@ -1,41 +1,53 @@
-# MilkFlow — Milk Management Mobile Application
+# Milk Management System (MMS)
 
-A modern, dual-panel mobile application for managing daily milk distribution between **Sellers (Distributors / Admin)** and **Buyers (Customers)**.
+**Version 1.0 — Mobile Application (Android & iOS)**
 
-> Built mobile-first for Android & iOS using **Flutter** with **Material Design 3**, dark/light mode, role-based authentication, and offline-first daily operations.
+A modern, dual-panel mobile application that digitizes daily milk delivery operations, customer management, billing, collections, reporting, and customer communication — replacing manual registers and paper bills with a single, mobile-first app.
+
+The same app contains two role-based panels:
+
+1. **Milk Seller Panel** — distributors / dairy operators
+2. **Milk Buyer Panel** — household customers
+
+Built with **Material Design 3**, light + dark mode, role-based authentication, offline-first daily operations, and integrated digital payments.
+
+---
 
 ## Documentation Index
 
 | # | Document | Purpose |
 |---|----------|---------|
-| 01 | [Product Requirements (PRD)](docs/01-PRD.md) | Vision, goals, personas, scope, success metrics |
-| 02 | [Feature Specification](docs/02-Feature-Specification.md) | Detailed feature list per panel |
-| 03 | [User Flow](docs/03-User-Flow.md) | End-to-end user journeys |
-| 04 | [Database Structure](docs/04-Database-Structure.md) | Schemas, relationships, indexes |
-| 05 | [API Requirements](docs/05-API-Requirements.md) | REST endpoints, payloads, auth |
+| 01 | [Product Requirements (PRD)](docs/01-PRD.md) | Vision, KPIs, full panel specs, MVP scope |
+| 02 | [Feature Specification](docs/02-Feature-Specification.md) | Every feature with traceable IDs and priorities |
+| 03 | [User Flow](docs/03-User-Flow.md) | End-to-end user journeys for both roles |
+| 04 | [Database Structure](docs/04-Database-Structure.md) | PostgreSQL schemas, indexes, RLS, retention |
+| 05 | [API Requirements](docs/05-API-Requirements.md) | REST endpoints, payloads, auth, webhooks |
 | 06 | [Mobile App Screens](docs/06-Mobile-App-Screens.md) | Screen-by-screen specification |
-| 07 | [Business Logic](docs/07-Business-Logic.md) | Billing, subscriptions, delivery rules |
-| 08 | [Development Roadmap](docs/08-Development-Roadmap.md) | Phased delivery plan |
+| 07 | [Business Logic](docs/07-Business-Logic.md) | Billing, deliveries, payments, conflicts |
+| 08 | [Development Roadmap](docs/08-Development-Roadmap.md) | Phased 16-week delivery plan |
 
-## Tech Stack (Recommended)
+---
 
-- **Mobile:** Flutter 3.x (single codebase, Android + iOS)
-- **State:** Riverpod / BLoC
-- **Backend:** Node.js + Express (or NestJS) — REST API
-- **Database:** PostgreSQL (transactional) + Redis (cache/session)
-- **Auth:** JWT (access + refresh) + OTP via SMS
-- **Storage:** AWS S3 / Firebase Storage (product & profile images)
-- **Notifications:** Firebase Cloud Messaging (FCM)
-- **Payments:** Razorpay / Stripe / UPI
-- **Maps:** Google Maps SDK (delivery routes)
+## Tech Stack (per PRD §13)
 
-## Two Panels, One App
+| Layer | Choice |
+|-------|--------|
+| Mobile App | **Flutter** (or React Native) |
+| Backend | **Node.js + NestJS** |
+| Database | PostgreSQL |
+| Authentication | Firebase Authentication |
+| Storage | AWS S3 |
+| Notifications | Firebase Cloud Messaging + SMS + WhatsApp |
+| Payments | Razorpay · PhonePe · Cashfree |
 
-The app detects the logged-in user's role and routes them to the correct panel:
+## MVP Scope (per PRD §15)
 
-- **Seller Panel** — manage customers, products, deliveries, billing, reports
-- **Buyer Panel** — subscribe, pause/resume, view ledger, pay, rate
+**Included** — Authentication · Seller Dashboard · Buyer Dashboard · Customer Management · Delivery Recording · Billing · Invoice Generation · Payment Recording · Reports · Notifications · Calendar View · Complaint System
+
+**Excluded** — AI Analytics · GPS Tracking · Route Optimization · Multi-Seller Marketplace · IoT Milk Meter Integration
+
+---
 
 ## Getting Started
 
-See [Development Roadmap](docs/08-Development-Roadmap.md) for the phased plan.
+See [08-Development-Roadmap.md](docs/08-Development-Roadmap.md) for the phased plan.
