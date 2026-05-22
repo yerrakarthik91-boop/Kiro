@@ -1,0 +1,15 @@
+[build]
+  command = "bash scripts/build-web.sh"
+  publish = "mobile/build/web"
+
+[build.environment]
+  # Override these in the Netlify UI: Site settings → Environment variables.
+  API_BASE_URL = "https://api.example.com/v1"
+  FLUTTER_VERSION = "stable"
+
+# SPA fallback: every unknown route is served by index.html so go_router can
+# pick it up.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

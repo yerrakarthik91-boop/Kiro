@@ -27,7 +27,10 @@ dependencies:
   shared_preferences: ^2.2.2
 
   # UI
-  intl: ^0.19.0
+  # NOTE: keep `intl` constraint compatible with whatever
+  # `flutter_localizations` pins — the Flutter SDK on stable currently
+  # pins it to 0.20.2 and version-solving fails otherwise.
+  intl: ^0.20.2
   cached_network_image: ^3.3.1
   printing: ^5.12.0
 
@@ -38,3 +41,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Supports Android, iOS, and web (no extra config — Flutter handles all
+  # three from the same lib/ codebase). Run `flutter create . --platforms
+  # android,ios,web` once to materialize the platform folders.

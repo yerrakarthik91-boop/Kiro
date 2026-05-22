@@ -1,0 +1,45 @@
+# Render Blueprint — one-click deploy of the MMS backend + Postgres.
+#
+# How to deploy:
+#   1. Sign up at https://render.com (free)
+#   2. Click "New" → "Blueprint" → connect this GitHub repo
+#   3. Render reads this file and creates the web service + database
+#   4. Once deployed, copy the service URL (e.g. https://mms-backend.onrender.com)
+#      and use it as API_BASE_URL when deploying the web frontend
+#
+# Free tier: web service spins down after 15 min idle; Postgres free for 90 days.
+
+services:
+  - type: web
+    name: mms-backend
+    env: node
+    region: singapore
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run migration:run && node dist/main.js
+    healthCheckPath: /docs
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mms-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_TTL
+        value: 30m
+      - key: JWT_REFRESH_TTL
+        value: 30d
+
+databases:
+  - name: mms-db
+    plan: free
+    region: singapore
+    databaseName: mms
+    user: mms

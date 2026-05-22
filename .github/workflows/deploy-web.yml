@@ -1,0 +1,65 @@
+name: Deploy Web Demo
+
+# Builds the Flutter web app and publishes it to GitHub Pages.
+# The hosted URL becomes:  https://<owner>.github.io/<repo>/
+
+on:
+  push:
+    branches:
+      - main
+      - feat/web-deploy # auto-deploy from the deploy branch too
+  workflow_dispatch: # allow manual runs from the Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Materialize platform folders
+        run: flutter create . --project-name mms --platforms web --org app.mms
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build web (release)
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL || 'https://api.example.com/v1' }}
+        run: |
+          flutter build web --release \
+            --base-href "/${GITHUB_REPOSITORY##*/}/" \
+            --dart-define=API_BASE_URL=$API_BASE_URL
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: mobile/build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
