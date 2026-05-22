@@ -1,12 +1,14 @@
 import {
+  BadRequestException,
   Injectable,
   UnauthorizedException,
-  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from '../users/entities/user.entity';
+import { Seller } from '../sellers/entities/seller.entity';
+import { Buyer } from '../buyers/entities/buyer.entity';
 import { OtpService } from './otp.service';
 import { OtpVerifyDto } from './dto/otp-verify.dto';
 
@@ -14,14 +16,14 @@ import { OtpVerifyDto } from './dto/otp-verify.dto';
 export class AuthService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Seller) private readonly sellers: Repository<Seller>,
+    @InjectRepository(Buyer) private readonly buyers: Repository<Buyer>,
     private readonly otp: OtpService,
     private readonly jwt: JwtService,
   ) {}
 
   async requestOtp(phone: string) {
     const code = await this.otp.generateAndStore(phone);
-    // In development we surface the OTP in the response for testing.
-    // In production this MUST be removed and the OTP delivered only via SMS.
     const inDev = process.env.NODE_ENV !== 'production';
     return { sent: true, ...(inDev ? { dev_otp: code } : {}) };
   }
@@ -46,7 +48,24 @@ export class AuthService {
         theme: 'system',
       });
       user = await this.users.save(user);
+
+      // Create the role-specific profile row
+      if (user.role === 'seller') {
+        await this.sellers.save(
+          this.sellers.create({
+            user_id: user.id,
+            business_name: dto.name ? `${dto.name}'s Dairy` : 'My Dairy',
+            invite_code: this.generateInviteCode(),
+            billing_cycle_day: 1,
+          }),
+        );
+      } else if (user.role === 'buyer') {
+        await this.buyers.save(this.buyers.create({ user_id: user.id }));
+      }
     }
+
+    user.last_login_at = new Date();
+    await this.users.save(user);
 
     const access = await this.jwt.signAsync(
       { sub: user.id, role: user.role, phone: user.phone },
@@ -87,5 +106,12 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
+  }
+
+  private generateInviteCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    return Array.from({ length: 6 }, () =>
+      chars[Math.floor(Math.random() * chars.length)],
+    ).join('');
   }
 }

@@ -15,6 +15,12 @@ export class UsersService {
     return user;
   }
 
+  async update(id: string, patch: Partial<User>): Promise<User> {
+    const u = await this.findById(id);
+    Object.assign(u, patch);
+    return this.repo.save(u);
+  }
+
   findByPhone(phone: string): Promise<User | null> {
     return this.repo.findOne({ where: { phone } });
   }
