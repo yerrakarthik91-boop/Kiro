@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/app_localizations.dart';
 import '../../../data/repositories/schedule_repository.dart';
 import '../../../shared/widgets/loading_view.dart';
 import '../../../shared/widgets/primary_button.dart';
@@ -52,15 +53,18 @@ class _ScheduleManagementScreenState
         await repo.pause(from: range.start, to: range.end);
       }
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isVacation ? 'Vacation set' : 'Delivery paused'),
+          content: Text(isVacation
+              ? l10n.t('vacation_set_msg')
+              : l10n.t('delivery_paused_msg')),
         ));
       }
       _refresh();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+            .showSnackBar(SnackBar(content: Text('${AppLocalizations.of(context).t('failed')}: $e')));
       }
     }
   }
@@ -69,14 +73,15 @@ class _ScheduleManagementScreenState
     try {
       await ref.read(scheduleRepositoryProvider).resume();
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Delivery resumed')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).t('delivery_resumed_msg'))),
+        );
       }
       _refresh();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+            .showSnackBar(SnackBar(content: Text('${AppLocalizations.of(context).t('failed')}: $e')));
       }
     }
   }
@@ -95,21 +100,24 @@ class _ScheduleManagementScreenState
             quantity: result.quantity,
           );
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Extra milk requested')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(AppLocalizations.of(context).t('extra_milk_requested_msg'))),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+            .showSnackBar(SnackBar(content: Text('${AppLocalizations.of(context).t('failed')}: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Manage schedule')),
+      appBar: AppBar(title: Text(l10n.t('manage_schedule'))),
       body: FutureBuilder<({bool active, String? until, String? type})>(
         future: _status,
         builder: (_, snap) {
@@ -128,36 +136,36 @@ class _ScheduleManagementScreenState
                         color: Colors.orange),
                     title: Text(
                       s.type == 'vacation'
-                          ? 'You are on vacation'
-                          : 'Delivery paused',
+                          ? l10n.t('on_vacation_until')
+                          : l10n.t('paused_until'),
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
-                    subtitle: Text('Until ${s.until ?? '-'}'),
+                    subtitle: Text('${l10n.t('until')} ${s.until ?? '-'}'),
                   ),
                 ),
               const SizedBox(height: 12),
               _ActionTile(
                 icon: Icons.pause_circle_outline,
-                title: 'Pause delivery',
-                subtitle: 'Temporarily stop daily delivery',
+                title: l10n.t('pause_delivery'),
+                subtitle: l10n.t('pause_delivery_sub'),
                 onTap: () => _pause(isVacation: false),
               ),
               _ActionTile(
                 icon: Icons.beach_access_outlined,
-                title: 'Vacation mode',
-                subtitle: 'Stop delivery for a longer trip',
+                title: l10n.t('vacation_mode'),
+                subtitle: l10n.t('vacation_mode_sub'),
                 onTap: () => _pause(isVacation: true),
               ),
               _ActionTile(
                 icon: Icons.play_circle_outline,
-                title: 'Resume delivery',
-                subtitle: 'Restart paused delivery now',
+                title: l10n.t('resume_delivery'),
+                subtitle: l10n.t('resume_delivery_sub'),
                 onTap: _resume,
               ),
               _ActionTile(
                 icon: Icons.add_circle_outline,
-                title: 'Extra milk request',
-                subtitle: 'Order extra for a single date',
+                title: l10n.t('extra_milk_request'),
+                subtitle: l10n.t('extra_milk_request_sub'),
                 onTap: _extraRequest,
               ),
             ],

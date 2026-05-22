@@ -1,0 +1,177 @@
+import { Injectable } from '@nestjs/common';
+import PDFDocument from 'pdfkit';
+import { Bill } from './entities/bill.entity';
+import { BillItem } from './entities/bill-item.entity';
+import { Customer } from '../customers/entities/customer.entity';
+import { Seller } from '../sellers/entities/seller.entity';
+
+/**
+ * Server-side invoice PDF rendering using pdfkit.
+ *
+ * Layout follows docs/06-Mobile-App-Screens.md SE-10 (Invoice Detail):
+ *   - Business header
+ *   - Customer block + Bill metadata
+ *   - Delivery breakdown table (date / slot / qty / rate / line total)
+ *   - Totals (subtotal, tax, discount, paid, balance)
+ */
+@Injectable()
+export class PdfService {
+  async renderBill(args: {
+    bill: Bill;
+    items: BillItem[];
+    customer: Customer;
+    seller: Seller;
+  }): Promise<Buffer> {
+    const { bill, items, customer, seller } = args;
+
+    const doc = new PDFDocument({ size: 'A4', margin: 40 });
+    const chunks: Buffer[] = [];
+
+    return new Promise<Buffer>((resolve, reject) => {
+      doc.on('data', (c: Buffer) => chunks.push(c));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // ─── Header ───
+      doc
+        .fontSize(20)
+        .fillColor('#0A8754')
+        .text(seller.business_name ?? 'My Dairy', { align: 'left' });
+
+      if (seller.address) {
+        doc
+          .moveDown(0.2)
+          .fontSize(9)
+          .fillColor('#555')
+          .text(seller.address);
+      }
+      if (seller.gst_number) {
+        doc.text(`GSTIN: ${seller.gst_number}`);
+      }
+
+      doc
+        .moveTo(40, 100)
+        .lineTo(555, 100)
+        .strokeColor('#cccccc')
+        .stroke();
+
+      // ─── Title ───
+      doc
+        .moveDown(2)
+        .fontSize(16)
+        .fillColor('#000')
+        .text('INVOICE', { align: 'right' });
+
+      // ─── Bill metadata + customer ───
+      const top = doc.y + 8;
+      doc.fontSize(10).fillColor('#000');
+      doc.text('Bill to', 40, top);
+      doc
+        .fontSize(11)
+        .fillColor('#000')
+        .text(customer.name, 40, top + 14);
+      doc.fontSize(9).fillColor('#555');
+      doc.text(customer.phone, 40, top + 30);
+      if (customer.address) doc.text(customer.address, 40, top + 44, { width: 250 });
+
+      doc.fontSize(10).fillColor('#000');
+      doc.text('Invoice #', 360, top);
+      doc.text(bill.bill_number, 460, top);
+      doc.text('Period', 360, top + 14);
+      doc.text(`${bill.period_start} → ${bill.period_end}`, 460, top + 14);
+      if (bill.due_date) {
+        doc.text('Due date', 360, top + 28);
+        doc.text(bill.due_date, 460, top + 28);
+      }
+
+      // ─── Delivery breakdown table ───
+      const tableTop = top + 100;
+      const colX = { date: 40, slot: 180, qty: 270, rate: 360, total: 470 };
+
+      doc
+        .fontSize(10)
+        .fillColor('#0A8754')
+        .text('Date', colX.date, tableTop)
+        .text('Slot', colX.slot, tableTop)
+        .text('Qty (L)', colX.qty, tableTop)
+        .text('Rate', colX.rate, tableTop)
+        .text('Total', colX.total, tableTop);
+
+      doc
+        .moveTo(40, tableTop + 14)
+        .lineTo(555, tableTop + 14)
+        .strokeColor('#cccccc')
+        .stroke();
+
+      let y = tableTop + 22;
+      doc.fillColor('#000').fontSize(10);
+      for (const it of items) {
+        if (y > 720) {
+          doc.addPage();
+          y = 60;
+        }
+        doc.text(it.delivery_date, colX.date, y);
+        doc.text(
+          it.slot.charAt(0).toUpperCase() + it.slot.slice(1),
+          colX.slot,
+          y,
+        );
+        doc.text(num(it.quantity).toFixed(2), colX.qty, y);
+        doc.text(`₹${num(it.unit_rate).toFixed(2)}`, colX.rate, y);
+        doc.text(`₹${num(it.line_total).toFixed(2)}`, colX.total, y);
+        y += 16;
+      }
+
+      doc
+        .moveTo(40, y + 4)
+        .lineTo(555, y + 4)
+        .strokeColor('#cccccc')
+        .stroke();
+
+      // ─── Totals ───
+      let ty = y + 18;
+      const labelX = 360;
+      const valueX = 470;
+
+      const row = (label: string, value: string, bold = false) => {
+        doc.fontSize(bold ? 11 : 10).fillColor(bold ? '#000' : '#444');
+        doc.text(label, labelX, ty);
+        doc.text(value, valueX, ty);
+        ty += 16;
+      };
+
+      row('Subtotal', `₹${num(bill.subtotal).toFixed(2)}`);
+      if (num(bill.tax_amount) > 0) {
+        row('Tax', `₹${num(bill.tax_amount).toFixed(2)}`);
+      }
+      if (num(bill.discount) > 0) {
+        row('Discount', `-₹${num(bill.discount).toFixed(2)}`);
+      }
+      row('Total', `₹${num(bill.total_amount).toFixed(2)}`, true);
+      row('Paid', `₹${num(bill.paid_amount).toFixed(2)}`);
+      const balance = num(bill.total_amount) - num(bill.paid_amount);
+      row('Balance', `₹${balance.toFixed(2)}`, true);
+
+      // ─── Footer ───
+      doc
+        .fontSize(8)
+        .fillColor('#999')
+        .text(
+          `Generated by Milk Management System on ${new Date()
+            .toISOString()
+            .substring(0, 10)}`,
+          40,
+          780,
+          { align: 'center', width: 515 },
+        );
+
+      doc.end();
+    });
+  }
+}
+
+function num(v: unknown): number {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') return Number(v) || 0;
+  return 0;
+}

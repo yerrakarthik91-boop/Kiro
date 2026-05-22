@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:printing/printing.dart';
 
 import '../../../data/models/bill.dart';
 import '../../../data/repositories/bills_repository.dart';
@@ -32,6 +35,26 @@ class _BillDetailScreenState extends ConsumerState<BillDetailScreen> {
     setState(() {});
   }
 
+  Future<void> _sharePdf(Bill bill) async {
+    try {
+      final bytes = await ref.read(billsRepositoryProvider).downloadPdfBytes(
+            billId: bill.id,
+            role: widget.role,
+          );
+      if (!mounted) return;
+      await Printing.sharePdf(
+        bytes: Uint8List.fromList(bytes),
+        filename: '${bill.billNumber}.pdf',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not generate PDF: $e')),
+        );
+      }
+    }
+  }
+
   Future<void> _markPaid(Bill bill) async {
     final balance = bill.totalAmount - bill.paidAmount;
     if (balance <= 0) return;
@@ -52,7 +75,28 @@ class _BillDetailScreenState extends ConsumerState<BillDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Invoice')),
+      appBar: AppBar(
+        title: const Text('Invoice'),
+        actions: [
+          FutureBuilder<
+                  ({
+                    Bill bill,
+                    List<BillItem> items,
+                    String customerName,
+                    String? customerPhone,
+                    String? customerAddress,
+                  })>(
+              future: _f,
+              builder: (_, snap) {
+                final bill = snap.data?.bill;
+                return IconButton(
+                  icon: const Icon(Icons.share_outlined),
+                  tooltip: 'Share PDF',
+                  onPressed: bill == null ? null : () => _sharePdf(bill),
+                );
+              }),
+        ],
+      ),
       body: FutureBuilder<({Bill bill, List<BillItem> items, String customerName, String? customerPhone, String? customerAddress})>(
         future: _f,
         builder: (_, snap) {

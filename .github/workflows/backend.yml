@@ -31,5 +31,5 @@ jobs:
       - name: TypeScript build
         run: npm run build
 
-      - name: Unit tests (if any)
-        run: npm test --if-present -- --passWithNoTests
+      - name: Unit tests
+        run: npm test -- --passWithNoTests
