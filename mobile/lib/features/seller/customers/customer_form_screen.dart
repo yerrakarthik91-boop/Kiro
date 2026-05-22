@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/app_localizations.dart';
 import '../../../data/models/customer.dart';
 import '../../../data/repositories/customers_repository.dart';
 import '../../../shared/widgets/primary_button.dart';
@@ -75,24 +76,25 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final isEdit = widget.customerId != null;
     return Scaffold(
-      appBar: AppBar(title: Text(isEdit ? 'Edit Customer' : 'Add Customer')),
+      appBar: AppBar(title: Text(isEdit ? l10n.t('edit_customer') : l10n.t('add_customer'))),
       body: Form(
         key: _form,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _SectionHeader('Basic info'),
+            _SectionHeader(l10n.t('basic_info')),
             TextFormField(
               controller: _name,
-              decoration: const InputDecoration(labelText: 'Customer name'),
+              decoration: InputDecoration(labelText: l10n.t('customer_name')),
               validator: (v) => (v?.isEmpty ?? true) ? 'Required' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _phone,
-              decoration: const InputDecoration(labelText: 'Mobile number'),
+              decoration: InputDecoration(labelText: l10n.t('mobile_number')),
               keyboardType: TextInputType.phone,
               validator: (v) =>
                   (v?.length ?? 0) < 8 ? 'Enter valid number' : null,
@@ -100,22 +102,22 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _altPhone,
-              decoration: const InputDecoration(labelText: 'Alternate number (optional)'),
+              decoration: InputDecoration(labelText: l10n.t('alt_number')),
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _address,
-              decoration: const InputDecoration(labelText: 'Address'),
+              decoration: InputDecoration(labelText: l10n.t('address')),
               maxLines: 2,
             ),
             const SizedBox(height: 24),
-            _SectionHeader('Delivery settings'),
+            _SectionHeader(l10n.t('delivery_settings')),
             SegmentedButton<DeliveryType>(
-              segments: const [
-                ButtonSegment(value: DeliveryType.morning, label: Text('Morning')),
-                ButtonSegment(value: DeliveryType.evening, label: Text('Evening')),
-                ButtonSegment(value: DeliveryType.both, label: Text('Both')),
+              segments: [
+                ButtonSegment(value: DeliveryType.morning, label: Text(l10n.t('morning'))),
+                ButtonSegment(value: DeliveryType.evening, label: Text(l10n.t('evening'))),
+                ButtonSegment(value: DeliveryType.both, label: Text(l10n.t('both'))),
               ],
               selected: {_type},
               onSelectionChanged: (s) => setState(() => _type = s.first),
@@ -126,8 +128,8 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _morning,
-                    decoration: const InputDecoration(
-                      labelText: 'Morning qty (L)',
+                    decoration: InputDecoration(
+                      labelText: l10n.t('morning_qty_label'),
                     ),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
@@ -137,8 +139,8 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _evening,
-                    decoration: const InputDecoration(
-                      labelText: 'Evening qty (L)',
+                    decoration: InputDecoration(
+                      labelText: l10n.t('evening_qty_label'),
                     ),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
@@ -147,11 +149,11 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
               ],
             ),
             const SizedBox(height: 24),
-            _SectionHeader('Pricing'),
+            _SectionHeader(l10n.t('pricing')),
             TextFormField(
               controller: _rate,
-              decoration: const InputDecoration(
-                labelText: 'Milk rate (₹/L)',
+              decoration: InputDecoration(
+                labelText: l10n.t('milk_rate_label'),
                 prefixText: '₹ ',
               ),
               keyboardType:
@@ -159,7 +161,7 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
             ),
             const SizedBox(height: 32),
             PrimaryButton(
-              label: isEdit ? 'Save changes' : 'Add customer',
+              label: isEdit ? l10n.t('save') : l10n.t('add_customer'),
               loading: _saving,
               onPressed: _save,
             ),

@@ -5,10 +5,12 @@ import { BillItem } from './entities/bill-item.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { Delivery } from '../deliveries/entities/delivery.entity';
 import { Seller } from '../sellers/entities/seller.entity';
+// Bills module also queries Seller directly for PDF rendering.
 import { BillsService } from './bills.service';
 import { SellerBillsController } from './seller-bills.controller';
 import { BuyerBillsController } from './buyer-bills.controller';
 import { BillGeneratorService } from './bill-generator.service';
+import { PdfService } from './pdf.service';
 import { SellersModule } from '../sellers/sellers.module';
 import { BuyersModule } from '../buyers/buyers.module';
 
@@ -18,7 +20,7 @@ import { BuyersModule } from '../buyers/buyers.module';
     SellersModule,
     BuyersModule,
   ],
-  providers: [BillsService, BillGeneratorService],
+  providers: [BillsService, BillGeneratorService, PdfService],
   controllers: [SellerBillsController, BuyerBillsController],
   exports: [BillsService, TypeOrmModule],
 })

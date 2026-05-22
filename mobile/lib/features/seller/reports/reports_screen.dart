@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/app_localizations.dart';
 import '../../../data/repositories/reports_repository.dart';
 import '../../../shared/widgets/loading_view.dart';
 
@@ -30,15 +31,16 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reports'),
+        title: Text(l10n.t('reports')),
         bottom: TabBar(
           controller: _tabs,
-          tabs: const [
-            Tab(text: 'Daily'),
-            Tab(text: 'Monthly'),
-            Tab(text: 'Profit & Loss'),
+          tabs: [
+            Tab(text: l10n.t('daily')),
+            Tab(text: l10n.t('monthly')),
+            Tab(text: l10n.t('profit_loss')),
           ],
         ),
       ),
@@ -79,6 +81,7 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return FutureBuilder<DailyReport>(
       future: _f,
       builder: (_, snap) {
@@ -117,12 +120,12 @@ class _DailyTabState extends ConsumerState<_DailyTab> {
               ],
             ),
             const SizedBox(height: 12),
-            _Stat(label: 'Total milk', value: '${r.totalMilk.toStringAsFixed(1)} L'),
-            _Stat(label: 'Morning', value: '${r.morning.toStringAsFixed(1)} L'),
-            _Stat(label: 'Evening', value: '${r.evening.toStringAsFixed(1)} L'),
-            _Stat(label: 'Revenue', value: '₹${r.revenue.toStringAsFixed(0)}'),
-            _Stat(label: 'Delivered', value: '${r.deliveredCount}'),
-            _Stat(label: 'Missed', value: '${r.missedCount}', isAlert: r.missedCount > 0),
+            _Stat(label: l10n.t('total_milk_today'), value: '${r.totalMilk.toStringAsFixed(1)} L'),
+            _Stat(label: l10n.t('morning'), value: '${r.morning.toStringAsFixed(1)} L'),
+            _Stat(label: l10n.t('evening'), value: '${r.evening.toStringAsFixed(1)} L'),
+            _Stat(label: l10n.t('revenue'), value: '₹${r.revenue.toStringAsFixed(0)}'),
+            _Stat(label: l10n.t('delivered'), value: '${r.deliveredCount}'),
+            _Stat(label: l10n.t('missed'), value: '${r.missedCount}', isAlert: r.missedCount > 0),
           ],
         );
       },
@@ -147,6 +150,7 @@ class _MonthlyTabState extends ConsumerState<_MonthlyTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return FutureBuilder<MonthlyReport>(
       future: _f,
       builder: (_, snap) {
@@ -167,20 +171,20 @@ class _MonthlyTabState extends ConsumerState<_MonthlyTab> {
           children: [
             Text(r.month, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
-            _Stat(label: 'Total milk', value: '${r.totalMilk.toStringAsFixed(1)} L'),
+            _Stat(label: l10n.t('total_milk_today'), value: '${r.totalMilk.toStringAsFixed(1)} L'),
             _Stat(
-              label: 'Revenue (deliveries)',
+              label: l10n.t('revenue'),
               value: '₹${r.revenueFromDeliveries.toStringAsFixed(0)}',
             ),
-            _Stat(label: 'Billed', value: '₹${r.billed.toStringAsFixed(0)}'),
-            _Stat(label: 'Collected', value: '₹${r.collected.toStringAsFixed(0)}'),
+            _Stat(label: l10n.t('billed'), value: '₹${r.billed.toStringAsFixed(0)}'),
+            _Stat(label: l10n.t('collected'), value: '₹${r.collected.toStringAsFixed(0)}'),
             _Stat(
-              label: 'Pending',
+              label: l10n.t('pending'),
               value: '₹${r.pending.toStringAsFixed(0)}',
               isAlert: r.pending > 0,
             ),
             _Stat(
-              label: 'Missed deliveries',
+              label: l10n.t('missed'),
               value: '${r.missedDeliveries}',
               isAlert: r.missedDeliveries > 0,
             ),
@@ -214,6 +218,7 @@ class _PnlTabState extends ConsumerState<_PnlTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return FutureBuilder<PnlReport>(
       future: _f,
       builder: (_, snap) {
@@ -229,10 +234,10 @@ class _PnlTabState extends ConsumerState<_PnlTab> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'day', label: Text('Day')),
-                  ButtonSegment(value: 'week', label: Text('Week')),
-                  ButtonSegment(value: 'month', label: Text('Month')),
+                segments: [
+                  ButtonSegment(value: 'day', label: Text(l10n.t('day'))),
+                  ButtonSegment(value: 'week', label: Text(l10n.t('week'))),
+                  ButtonSegment(value: 'month', label: Text(l10n.t('month'))),
                 ],
                 selected: {_range},
                 onSelectionChanged: (s) {
@@ -246,17 +251,17 @@ class _PnlTabState extends ConsumerState<_PnlTab> {
               child: Row(
                 children: [
                   Expanded(
-                    child: _SmallStat(label: 'Milk', value: '${r.totalMilk.toStringAsFixed(0)} L'),
+                    child: _SmallStat(label: l10n.t('milk'), value: '${r.totalMilk.toStringAsFixed(0)} L'),
                   ),
                   Expanded(
                     child: _SmallStat(
-                      label: 'Revenue',
+                      label: l10n.t('revenue'),
                       value: '₹${r.totalRevenue.toStringAsFixed(0)}',
                     ),
                   ),
                   Expanded(
                     child: _SmallStat(
-                      label: 'Profit',
+                      label: l10n.t('profit'),
                       value: '₹${r.totalProfit.toStringAsFixed(0)}',
                     ),
                   ),

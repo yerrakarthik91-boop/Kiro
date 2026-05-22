@@ -2,6 +2,7 @@ const Map<String, String> stringsHi = {
   'app_name': 'दूध प्रबंधन सिस्टम',
   'tagline': 'बेचें, खरीदें, ट्रैक करें, भुगतान करें',
 
+  // User selection
   'select_role_title': 'आप ऐप का उपयोग कैसे करेंगे?',
   'role_seller': 'मैं दूध विक्रेता हूँ',
   'role_seller_sub': 'ग्राहक, डिलीवरी और बिल प्रबंधित करें',
@@ -12,6 +13,7 @@ const Map<String, String> stringsHi = {
   'help': 'सहायता',
   'language': 'भाषा',
 
+  // Auth
   'enter_phone': 'अपना फोन नंबर दर्ज करें',
   'phone_hint': '+91 9876543210',
   'send_otp': 'OTP भेजें',
@@ -21,6 +23,22 @@ const Map<String, String> stringsHi = {
   'resend_in': 'पुनः भेजें',
   'use_email_login': 'ईमेल से लॉगिन करें',
 
+  // Common
+  'save': 'सहेजें',
+  'cancel': 'रद्द करें',
+  'submit': 'जमा करें',
+  'add': 'जोड़ें',
+  'edit': 'संपादित करें',
+  'delete': 'हटाएँ',
+  'retry': 'पुनः प्रयास',
+  'loading': 'लोड हो रहा है',
+  'success': 'सफल',
+  'failed': 'असफल',
+  'logout': 'लॉगआउट',
+  'refresh': 'ताज़ा करें',
+  'optional': 'वैकल्पिक',
+
+  // Seller dashboard
   'seller_dashboard': 'विक्रेता डैशबोर्ड',
   'total_milk_today': 'आज कुल दूध',
   'delivered_milk': 'वितरित दूध',
@@ -28,7 +46,64 @@ const Map<String, String> stringsHi = {
   'active_customers': 'सक्रिय ग्राहक',
   'pending_payments': 'बकाया भुगतान',
   'collections_today': 'आज की वसूली',
+  'invite_code': 'आमंत्रण कोड',
+  'delivery_summary': 'डिलीवरी सारांश',
+  'mark_deliveries': 'डिलीवरी चिह्नित करें',
 
+  // Customers
+  'customers': 'ग्राहक',
+  'add_customer': 'ग्राहक जोड़ें',
+  'edit_customer': 'ग्राहक संपादित करें',
+  'search_customers': 'नाम या फोन से खोजें',
+  'all': 'सभी',
+  'active': 'सक्रिय',
+  'paused': 'रोका गया',
+  'no_customers': 'अभी तक कोई ग्राहक नहीं।\nपहला जोड़ें।',
+  'basic_info': 'मूलभूत जानकारी',
+  'customer_name': 'ग्राहक का नाम',
+  'mobile_number': 'मोबाइल नंबर',
+  'alt_number': 'वैकल्पिक नंबर',
+  'address': 'पता',
+  'delivery_settings': 'डिलीवरी सेटिंग्स',
+  'morning': 'सुबह',
+  'evening': 'शाम',
+  'both': 'दोनों',
+  'morning_qty_label': 'सुबह की मात्रा (L)',
+  'evening_qty_label': 'शाम की मात्रा (L)',
+  'pricing': 'मूल्य निर्धारण',
+  'milk_rate_label': 'दूध की दर (₹/L)',
+
+  // Delivery report
+  'delivery_report': 'डिलीवरी रिपोर्ट',
+  'total': 'कुल',
+  'delivered': 'वितरित',
+  'pending': 'बकाया',
+  'missed': 'छूट गया',
+  'edit_quantity': 'मात्रा संपादित करें',
+  'generate_tomorrow': 'कल की डिलीवरी बनाएँ',
+  'generated_for_tomorrow': 'कल के लिए तैयार',
+  'no_deliveries':
+      'इस स्लॉट के लिए कोई डिलीवरी नहीं।\nटूलबार से कल की डिलीवरी बनाएँ।',
+
+  // Bills
+  'billing': 'बिलिंग',
+  'invoice': 'चालान',
+  'invoice_number': 'चालान #',
+  'period': 'अवधि',
+  'due_date': 'देय',
+  'paid': 'भुगतान किया',
+  'balance': 'शेष',
+  'mark_paid': 'भुगतान किया चिह्नित करें',
+  'no_bills': 'अभी तक कोई बिल नहीं।',
+  'no_bills_seller':
+      'अभी तक कोई बिल नहीं।\nपिछले महीने के बिल बनाने के लिए टूलबार का उपयोग करें।',
+  'generate_bills_now': 'अभी बिल बनाएँ',
+  'bills_generated': 'बिल बनाए गए।',
+  'payment_recorded': 'भुगतान दर्ज किया गया।',
+  'share_pdf': 'PDF शेयर करें',
+  'pdf_failed': 'PDF नहीं बनाया जा सका',
+
+  // Buyer dashboard
   'buyer_dashboard': 'खरीदार डैशबोर्ड',
   'welcome': 'स्वागत है',
   'morning_quantity': 'सुबह की मात्रा',
@@ -39,4 +114,49 @@ const Map<String, String> stringsHi = {
   'view_deliveries': 'डिलीवरी देखें',
   'view_bills': 'बिल देखें',
   'raise_complaint': 'शिकायत दर्ज करें',
+  'manage_schedule': 'शेड्यूल प्रबंधित करें',
+  'my_bills': 'मेरे बिल',
+
+  // Schedule management
+  'pause_delivery': 'डिलीवरी रोकें',
+  'pause_delivery_sub': 'दैनिक डिलीवरी अस्थायी रूप से रोकें',
+  'vacation_mode': 'अवकाश मोड',
+  'vacation_mode_sub': 'लंबी यात्रा के लिए डिलीवरी रोकें',
+  'resume_delivery': 'डिलीवरी फिर से शुरू करें',
+  'resume_delivery_sub': 'रुकी हुई डिलीवरी अभी शुरू करें',
+  'extra_milk_request': 'अतिरिक्त दूध अनुरोध',
+  'extra_milk_request_sub': 'किसी एक दिन के लिए अतिरिक्त ऑर्डर करें',
+  'paused_until': 'डिलीवरी रोकी गई',
+  'on_vacation_until': 'आप अवकाश पर हैं',
+  'until': 'तक',
+  'extra_request_title': 'अतिरिक्त दूध अनुरोध',
+  'extra_quantity': 'अतिरिक्त मात्रा (L)',
+  'date': 'तारीख',
+  'delivery_paused_msg': 'डिलीवरी रोकी गई',
+  'vacation_set_msg': 'अवकाश सेट किया गया',
+  'delivery_resumed_msg': 'डिलीवरी फिर से शुरू हुई',
+  'extra_milk_requested_msg': 'अतिरिक्त दूध का अनुरोध किया गया',
+
+  // Reports
+  'reports': 'रिपोर्ट्स',
+  'daily': 'दैनिक',
+  'monthly': 'मासिक',
+  'profit_loss': 'लाभ और हानि',
+  'day': 'दिन',
+  'week': 'सप्ताह',
+  'month': 'महीना',
+  'milk': 'दूध',
+  'revenue': 'आय',
+  'profit': 'लाभ',
+  'billed': 'बिल किया गया',
+  'collected': 'वसूला गया',
+
+  // Complaints
+  'complaint_category': 'श्रेणी',
+  'description_optional': 'विवरण (वैकल्पिक)',
+  'complaint_submitted': 'शिकायत दर्ज की गई।',
+  'category_delivery': 'डिलीवरी',
+  'category_billing': 'बिलिंग',
+  'category_quantity': 'मात्रा',
+  'category_other': 'अन्य',
 };
