@@ -13,6 +13,34 @@ Built with **Material Design 3**, light + dark mode, role-based authentication, 
 
 ---
 
+## Repository Layout
+
+```
+Kiro/
+├── docs/                       # Specification (PRD, screens, schema, etc.)
+├── backend/                    # NestJS REST API + TypeORM migrations
+├── mobile/                     # Flutter app (Seller + Buyer panels)
+└── docker-compose.yml          # Local dev stack: Postgres + Redis + backend
+```
+
+Quick start (full stack):
+
+```bash
+# 1. Start backend + Postgres + Redis
+docker compose up
+
+# 2. Run migrations (in another terminal)
+docker compose exec backend npm run migration:run
+
+# 3. Run the Flutter app
+cd mobile
+flutter create . --project-name mms --platforms android,ios
+flutter pub get
+flutter run
+```
+
+See `backend/README.md` and `mobile/README.md` for details.
+
 ## Documentation Index
 
 | # | Document | Purpose |

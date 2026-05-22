@@ -1,0 +1,63 @@
+version: "3.9"
+
+# Local development stack for MMS (backend + Postgres + Redis).
+# Mobile app runs separately via `flutter run` from the ./mobile directory.
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: mms-postgres
+    environment:
+      POSTGRES_DB: mms
+      POSTGRES_USER: mms
+      POSTGRES_PASSWORD: mms_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mms"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: mms-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mms-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgres://mms:mms_dev_password@postgres:5432/mms
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev_jwt_secret_change_me
+      JWT_REFRESH_SECRET: dev_jwt_refresh_secret_change_me
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/package.json:/app/package.json
+    command: npm run start:dev
+
+volumes:
+  postgres-data:
+  redis-data:
