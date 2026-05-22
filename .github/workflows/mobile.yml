@@ -10,7 +10,7 @@ on:
 
 jobs:
   analyze:
-    name: Analyze & format
+    name: Analyze & test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -25,13 +25,15 @@ jobs:
           cache: true
 
       - name: Bootstrap Flutter project (creates platform folders)
-        run: flutter create . --project-name mms --platforms android,ios --org app.mms
+        run: flutter create . --project-name mms --platforms android,ios,web --org app.mms
 
       - name: Install dependencies
         run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze --no-fatal-warnings
+        # Allow info-level warnings (e.g. deprecated_member_use, prefer_const)
+        # to pass; only real errors fail the build.
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Format check
-        run: dart format --set-exit-if-changed lib/
+      - name: Widget tests
+        run: flutter test

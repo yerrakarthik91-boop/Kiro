@@ -2,17 +2,13 @@ name: Deploy Web Demo
 
 # Builds the Flutter web app and publishes it to GitHub Pages.
 # The hosted URL becomes:  https://<owner>.github.io/<repo>/
-#
-# Configuration:
-#   - Set the API base URL via repo variable VARS.API_BASE_URL
-#     (Repo Settings → Secrets and variables → Actions → Variables → New).
-#     Defaults to a placeholder if unset; the app will display an inline
-#     error until you point it at a running backend.
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch: # allow manual runs
+    branches:
+      - main
+      - feat/web-deploy # auto-deploy from the deploy branch too
+  workflow_dispatch: # allow manual runs from the Actions tab
 
 permissions:
   contents: read
@@ -46,7 +42,6 @@ jobs:
 
       - name: Build web (release)
         env:
-          # Pull from repo variable; fallback used in error UI inside app.
           API_BASE_URL: ${{ vars.API_BASE_URL || 'https://api.example.com/v1' }}
         run: |
           flutter build web --release \
