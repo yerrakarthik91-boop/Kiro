@@ -1,0 +1,12 @@
+{
+  "buildCommand": "bash scripts/build-web.sh",
+  "outputDirectory": "mobile/build/web",
+  "framework": null,
+  "installCommand": "echo 'skip default install — handled in build-web.sh'",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "Milk Management System",
+  "short_name": "MMS",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0e1411",
+  "theme_color": "#0A8754",
+  "description": "Manage daily milk delivery, billing, and payments.",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "icons": []
+}

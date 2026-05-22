@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Milk Management System — manage daily milk delivery, billing, and payments.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="MMS">
+
+  <!-- Favicon -->
+  <link rel="manifest" href="manifest.json">
+
+  <title>Milk Management System</title>
+  <style>
+    body { background: #0e1411; color: #fff; font-family: system-ui, sans-serif; margin: 0; }
+    #loader {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    #loader .dot {
+      width: 64px; height: 64px; border-radius: 16px; background: #0A8754;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 32px rgba(10, 135, 84, 0.4);
+    }
+    #loader .dot::after {
+      content: '🥛'; font-size: 32px;
+    }
+    #loader p { margin-top: 16px; color: #7BD9A2; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div id="loader">
+    <div class="dot"></div>
+    <p>Milk Management System</p>
+  </div>
+
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

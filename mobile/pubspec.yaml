@@ -38,3 +38,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Supports Android, iOS, and web (no extra config — Flutter handles all
+  # three from the same lib/ codebase). Run `flutter create . --platforms
+  # android,ios,web` once to materialize the platform folders.
